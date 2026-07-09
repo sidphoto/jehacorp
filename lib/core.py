@@ -17,8 +17,8 @@ except ImportError:
 # ── Upstash Redis (Vercel KV) 封裝 ──────────────────────────────────────────
 try:
     import urllib.request
-    _UPSTASH_URL = os.environ.get("KV_REST_API_URL", "")
-    _UPSTASH_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
+    _UPSTASH_URL = os.environ.get("KV_REST_API_URL") or os.environ.get("UPSTASH_REDIS_REST_URL") or ""
+    _UPSTASH_TOKEN = os.environ.get("KV_REST_API_TOKEN") or os.environ.get("UPSTASH_REDIS_REST_TOKEN") or ""
 
     def _kv_request(method, path, body=None):
         url = f"{_UPSTASH_URL}{path}"
