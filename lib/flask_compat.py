@@ -4,7 +4,11 @@ lib/flask_compat.py — Vercel Python Serverless 相容層
 讓每個 api/*.py 只需最後一行：app = make_flask_app(handler)
 """
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+for d in [current_dir, parent_dir, "/var/task"]:
+    if d not in sys.path:
+        sys.path.insert(0, d)
 
 import json
 from flask import Flask, request as flask_request, Response
