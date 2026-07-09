@@ -1,7 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import json, re, time, random, threading
+import json
+from lib.flask_compat import make_flask_app, re, time, random, threading
 from lib.core import (
     BUILTIN_AGENTS, BUILTIN_WORKFLOWS, FABLE_AUDITOR_PROMPT, SECURITY_CHECKER_PROMPT,
     get_user_md, get_user_settings, get_user_agents, get_user_workflows,
@@ -405,3 +406,5 @@ def handler(request):
         "body": json.dumps({"job_id": job_id, "message": "任務已啟動！請使用 /api/job?id= 輪詢進度。"}, ensure_ascii=False),
         "headers": {"Content-Type": "application/json; charset=utf-8"}
     }
+
+app = make_flask_app(handler)

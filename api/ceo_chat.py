@@ -2,6 +2,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import json
+from lib.flask_compat import make_flask_app
 from lib.core import (get_user_md, get_user_settings, get_llm_client, get_user_id_from_request)
 
 def handler(request):
@@ -54,3 +55,5 @@ def handler(request):
 
     return {"statusCode": 200, "body": json.dumps({"reply": reply}, ensure_ascii=False),
             "headers": {"Content-Type": "application/json; charset=utf-8"}}
+
+app = make_flask_app(handler)

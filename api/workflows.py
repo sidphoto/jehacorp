@@ -1,7 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import json, time
+import json
+from lib.flask_compat import make_flask_app, time
 from lib.core import (BUILTIN_WORKFLOWS, get_user_workflows, save_user_workflows,
                       get_user_id_from_request)
 
@@ -33,3 +34,5 @@ def handler(request):
                 "headers": {"Content-Type": "application/json; charset=utf-8"}}
 
     return {"statusCode": 405, "body": "Method Not Allowed"}
+
+app = make_flask_app(handler)

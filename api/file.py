@@ -2,6 +2,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import json
+from lib.flask_compat import make_flask_app
 from lib.core import get_project_files, get_user_id_from_request
 
 def handler(request):
@@ -52,3 +53,5 @@ def handler(request):
             "Cache-Control": "no-cache"
         }
     }
+
+app = make_flask_app(handler)
