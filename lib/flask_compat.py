@@ -42,16 +42,24 @@ def make_flask_app(handler_fn):
         if flask_request.method == 'OPTIONS':
             return Response('', 204)
 
-        fake_req = _FakeRequest()
-        result = handler_fn(fake_req)
+        try:
+            fake_req = _FakeRequest()
+            result = handler_fn(fake_req)
 
-        status_code = result.get('statusCode', 200)
-        body = result.get('body', '')
-        headers = result.get('headers', {'Content-Type': 'application/json; charset=utf-8'})
+            status_code = result.get('statusCode', 200)
+            body = result.get('body', '')
+            headers = result.get('headers', {'Content-Type': 'application/json; charset=utf-8'})
 
-        resp = Response(body, status=status_code)
-        for k, v in headers.items():
-            resp.headers[k] = v
-        return resp
+            resp = Response(body, status=status_code)
+            for k, v in headers.items():
+                resp.headers[k] = v
+            return resp
+        except Exception as e:
+            import traceback
+            err_msg = traceback.format_exc()
+            err_body = json.dumps({"error": f"後端崩潰錯誤日誌：\n{err_msg}"}, ensure_ascii=False)
+            resp = Response(err_body, status=500, mimetype="application/json")
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            return resp
 
     return app
