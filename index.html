@@ -683,6 +683,78 @@
     .terminal-line.warning { color: #b39db0; }
     .terminal-line.error { color: #d1928e; }
 
+    /* ⚙️ 總裁設置 Wabi-Sabi 區塊卡片 */
+    .settings-section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+      transition: var(--transition);
+    }
+    
+    .settings-section-title {
+      font-family: var(--font-title);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+    }
+
+    /* ⏱️ 定時任務專屬特別樣式 */
+    .cron-highlight-card {
+      border: 1px solid var(--accent);
+      background: rgba(130, 98, 81, 0.02);
+    }
+
+    /* 極簡開關 Switch */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    .switch-label {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--text-main);
+    }
+    .switch-toggle {
+      position: relative;
+      width: 42px;
+      height: 22px;
+      background: var(--card-border);
+      border-radius: 11px;
+      transition: background 0.3s;
+    }
+    .switch-toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    input[type="checkbox"].switch-checkbox {
+      display: none;
+    }
+    input[type="checkbox"].switch-checkbox:checked + .switch-toggle {
+      background: var(--accent);
+    }
+    input[type="checkbox"].switch-checkbox:checked + .switch-toggle::after {
+      transform: translateX(20px);
+    }
+
     /* 🏮 推拉門式成果抽屜 (Fusuma Overlay Sheet) - 解決行動端閱讀瑕疵 */
     .results-drawer {
       position: fixed;
@@ -1621,94 +1693,112 @@
   </div>
 
   <!-- ⚙️ 總裁系統設置抽屜 (settings.json) -->
-  <div class="results-drawer" id="settings-drawer">
+  <div class="results-drawer" id="settings-drawer" style="max-width: 680px; margin: 0 auto; left: 0; right: 0;">
     <div class="results-drawer-header">
       <div class="results-drawer-title-area">
         <span class="results-drawer-avatar">⚙️</span>
         <h3 class="results-drawer-title">總裁設置與 API 串接 (settings.json)</h3>
       </div>
       <div class="results-drawer-actions">
-        <button class="btn" style="width:auto;padding:0.3rem 0.75rem;font-size:0.75rem;border-radius:2px;" id="save-settings-btn">💾 儲存設置</button>
+        <button class="btn" style="width:auto;padding:0.35rem 1rem;font-size:0.78rem;border-radius:2px;" id="save-settings-btn">💾 儲存設置</button>
         <button class="results-drawer-close" id="settings-drawer-close" title="關閉">✕</button>
       </div>
     </div>
-    <div class="results-drawer-content">
-      <!-- 🌐 後端 API 服務網址配置 -->
-      <div class="form-group" style="margin-bottom:1.25rem;border-bottom:1px solid var(--border-color);padding-bottom:1rem;">
-        <label class="form-label" for="setting-backend-url" style="display:block;margin-bottom:0.4rem;font-weight:bold;">🌐 後端服務 URL (SaaS 部署對接)</label>
-        <input type="text" id="setting-backend-url" class="form-input" placeholder="例如：https://jeha-backend.onrender.com (本機預設留空)" style="font-size:0.8rem;">
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;">
-          當您將前端上架到 Vercel 時，請在此處填入您部署在 Render/Railway 的後端 API 位址。本機測試請留空。
-        </p>
+    
+    <div class="results-drawer-content" style="padding: 1.5rem; overflow-y: auto;">
+      
+      <!-- 🌐 區塊 1：後端服務對接 -->
+      <div class="settings-section-card">
+        <div class="settings-section-title">
+          <span>🌐 後端服務 URL (SaaS 部署對接)</span>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input type="text" id="setting-backend-url" class="form-input" placeholder="例如：https://jeha-backend.onrender.com (本機預設留空)" style="font-size:0.8rem; width: 100%;">
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;line-height:1.5;">
+            當您將前端上架到 Vercel 時，請在此處填入您部署在 Render/Railway 的後端 API 位址。本機測試請留空。
+          </p>
+        </div>
       </div>
 
-      <!-- 🔄 方案 C: Google Drive 雲端同步設定 -->
-      <div class="form-group" style="margin-bottom:1.25rem;border-bottom:1px solid var(--border-color);padding-bottom:1rem;">
-        <label class="form-label" style="display:block;margin-bottom:0.4rem;font-weight:bold;">💾 雲端備份同步 (Google Drive 方案 C)</label>
+      <!-- 💾 區塊 2：雲端同步 (方案 C) -->
+      <div class="settings-section-card">
+        <div class="settings-section-title">
+          <span>💾 雲端備份同步 (Google Drive 方案 C)</span>
+        </div>
         <div class="form-group" style="margin-bottom:0.85rem;">
-          <label class="form-label" for="gdrive-client-id" style="font-size:0.78rem;">Google OAuth Client ID</label>
-          <input type="text" id="gdrive-client-id" class="form-input" placeholder="例如: 123456-xxxx.apps.googleusercontent.com" style="font-size:0.8rem;">
+          <label class="form-label" for="gdrive-client-id" style="font-size:0.78rem; font-weight: bold; margin-bottom: 0.35rem; display: block;">Google OAuth Client ID</label>
+          <input type="text" id="gdrive-client-id" class="form-input" placeholder="例如: 123456-xxxx.apps.googleusercontent.com" style="font-size:0.8rem; width:100%;">
         </div>
-        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-          <button class="btn" style="flex:1;padding:0.4rem;font-size:0.75rem;border-radius:2px;background:#4285F4;color:white;border:none;" id="gdrive-login-btn">🔑 授權雲端</button>
-          <button class="btn" style="flex:1;padding:0.4rem;font-size:0.75rem;border-radius:2px;background:var(--color-success);color:white;border:none;" id="gdrive-sync-btn" disabled>🔄 立即同步</button>
-          <button class="btn" style="flex:1;padding:0.4rem;font-size:0.75rem;border-radius:2px;background:var(--danger);color:white;border:none;" id="gdrive-logout-btn" style="display:none;">斷開</button>
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;margin-bottom: 0.75rem;">
+          <button class="btn" style="flex:1;padding:0.5rem;font-size:0.78rem;border-radius:2px;background:#4285F4;color:white;border:none;font-weight:bold;height:36px;" id="gdrive-login-btn">🔑 授權雲端</button>
+          <button class="btn" style="flex:1;padding:0.5rem;font-size:0.78rem;border-radius:2px;background:var(--color-success);color:white;border:none;font-weight:bold;height:36px;" id="gdrive-sync-btn" disabled>🔄 立即同步</button>
+          <button class="btn" style="flex:auto;padding:0.5rem;font-size:0.78rem;border-radius:2px;background:var(--danger);color:white;border:none;font-weight:bold;height:36px;display:none;" id="gdrive-logout-btn">斷開</button>
         </div>
-        <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;" id="gdrive-status-text">
+        <p style="font-size:0.72rem;color:var(--text-muted);line-height:1.5;margin-bottom:0;" id="gdrive-status-text">
           狀態：未授權。填入 Google Client ID 並授權後，即可自動將員工、習慣與設定備份至個人雲端硬碟。
         </p>
       </div>
 
-      <div class="form-group" style="margin-bottom:1.25rem;">
-        <label class="form-label" style="display:block;margin-bottom:0.4rem;font-weight:bold;">總裁訂閱方案</label>
-        <div style="display:flex;gap:0.5rem;">
-          <button class="flow-badge active" style="flex:1;cursor:pointer;border-radius:2px;padding:0.5rem;justify-content:center;" id="plan-free-btn">起步版 (Free)</button>
-          <button class="flow-badge" style="flex:1;cursor:pointer;border-radius:2px;padding:0.5rem;justify-content:center;" id="plan-pro-btn">專業版 (Pro)</button>
+      <!-- 🔑 區塊 3：訂閱方案與自訂金鑰 -->
+      <div class="settings-section-card">
+        <div class="settings-section-title">
+          <span>👑 總裁訂閱與 AI 算力方案</span>
         </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;" id="plan-help-text">
-          起步版：預設使用市面上免費 API 進行推論（平台預設提供，次數有限）。
-        </p>
-      </div>
-      
-      <div id="pro-keys-container" style="display:none;border-top:1px solid var(--border-color);padding-top:1rem;margin-top:1rem;">
-        <h4 style="font-size:0.85rem;font-family:var(--font-title);margin-bottom:0.75rem;">🔑 自訂 API 串接金鑰</h4>
-        <div class="form-group" style="margin-bottom:0.85rem;">
-          <label class="form-label" for="setting-openai-key" style="font-size:0.78rem;">OpenAI API Key</label>
-          <input type="password" id="setting-openai-key" class="form-input" placeholder="sk-proj-..." style="font-size:0.8rem;">
-        </div>
-        <div class="form-group" style="margin-bottom:0.85rem;">
-          <label class="form-label" for="setting-gemini-key" style="font-size:0.78rem;">Gemini API Key</label>
-          <input type="password" id="setting-gemini-key" class="form-input" placeholder="AIzaSy..." style="font-size:0.8rem;">
-        </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);">
-          * 金鑰以物理隔離形式安全儲存於您的本機伺服器，絕不上傳第三方。
-        </p>
-      </div>
-      
-      <!-- ⏱️ 自動定時派工設定 -->
-      <div id="cron-container" style="border-top:1px solid var(--border-color);padding-top:1rem;margin-top:1rem;">
-        <h4 style="font-size:0.85rem;font-family:var(--font-title);margin-bottom:0.75rem;">⏱️ 自動定時派工設定</h4>
-        <div class="form-group" style="margin-bottom:0.85rem;display:flex;align-items:center;gap:0.5rem;">
-          <input type="checkbox" id="setting-cron-enabled" style="width:auto;cursor:pointer;">
-          <label class="form-label" for="setting-cron-enabled" style="font-size:0.8rem;margin:0;cursor:pointer;font-weight:bold;">開啟自動定時派遣任務</label>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <div style="display:flex;gap:0.5rem;">
+            <button class="flow-badge active" style="flex:1;cursor:pointer;border-radius:2px;padding:0.55rem;justify-content:center;font-weight:bold;" id="plan-free-btn">起步版 (Free)</button>
+            <button class="flow-badge" style="flex:1;cursor:pointer;border-radius:2px;padding:0.55rem;justify-content:center;font-weight:bold;" id="plan-pro-btn">專業版 (Pro)</button>
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;line-height:1.5;" id="plan-help-text">
+            起步版：預設使用市面上免費 API 進行推論（平台預設提供，次數有限）。
+          </p>
         </div>
         
-        <div id="cron-details-form" style="display:none;">
+        <div id="pro-keys-container" style="display:none;border-top:1px dashed var(--card-border);padding-top:1rem;margin-top:0.75rem;">
+          <h4 style="font-size:0.8rem;font-family:var(--font-title);margin-bottom:0.75rem;font-weight:bold;">🔑 自訂 API 串接金鑰</h4>
           <div class="form-group" style="margin-bottom:0.85rem;">
-            <label class="form-label" for="setting-cron-schedule" style="font-size:0.78rem;">派遣時間與間隔頻率</label>
-            <select class="form-select" id="setting-cron-schedule" style="font-size:0.8rem;">
+            <label class="form-label" for="setting-openai-key" style="font-size:0.78rem;display:block;margin-bottom:0.3rem;">OpenAI API Key</label>
+            <input type="password" id="setting-openai-key" class="form-input" placeholder="sk-proj-..." style="font-size:0.8rem;width:100%;">
+          </div>
+          <div class="form-group" style="margin-bottom:0.85rem;">
+            <label class="form-label" for="setting-gemini-key" style="font-size:0.78rem;display:block;margin-bottom:0.3rem;">Gemini API Key</label>
+            <input type="password" id="setting-gemini-key" class="form-input" placeholder="AIzaSy..." style="font-size:0.8rem;width:100%;">
+          </div>
+          <p style="font-size:0.72rem;color:var(--text-muted);line-height:1.4;">
+            * 金鑰以物理隔離形式安全儲存於您的本機瀏覽器，僅在請求時發送。
+          </p>
+        </div>
+      </div>
+
+      <!-- ⏱️ 區塊 4：【獨立獨立】自動定時派工設定 -->
+      <div class="settings-section-card cron-highlight-card" id="cron-container">
+        <div class="settings-section-title" style="border-bottom-color: var(--accent);">
+          <span>⏱️ 自動定時派工設定 (Scheduler)</span>
+        </div>
+        
+        <!-- 極簡 Switch 開關 -->
+        <label class="switch-container" style="margin-bottom: 1rem;">
+          <span class="switch-label" style="font-size:0.82rem;">開啟自動定時派遣任務</span>
+          <input type="checkbox" id="setting-cron-enabled" class="switch-checkbox">
+          <span class="switch-toggle"></span>
+        </label>
+        
+        <div id="cron-details-form" style="display:none; border-top:1px dashed var(--card-border); padding-top:1rem; margin-top:0.5rem;">
+          <div class="form-group" style="margin-bottom:0.85rem;">
+            <label class="form-label" for="setting-cron-schedule" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">派遣時間與間隔頻率</label>
+            <select class="form-select" id="setting-cron-schedule" style="font-size:0.8rem; width:100%;">
               <option value="every_60s">每隔 60 秒測試 (推薦開發測試使用)</option>
               <option value="daily_0900">每日早上 09:00</option>
               <option value="weekly_monday_0900">每週一早上 09:00</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom:0.85rem;">
-            <label class="form-label" for="setting-cron-idea" style="font-size:0.78rem;">預設派遣點子 (Idea)</label>
-            <input type="text" id="setting-cron-idea" class="form-input" placeholder="例如：機車租賃競品分析日報" style="font-size:0.8rem;">
+            <label class="form-label" for="setting-cron-idea" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">預設派遣點子 (Idea)</label>
+            <input type="text" id="setting-cron-idea" class="form-input" placeholder="例如：機車租賃競品分析日報" style="font-size:0.8rem; width:100%;">
           </div>
-          <div class="form-group" style="margin-bottom:0.85rem;">
-            <label class="form-label" for="setting-cron-workflow" style="font-size:0.78rem;">預設執行小組工作流</label>
-            <select class="form-select" id="setting-cron-workflow" style="font-size:0.8rem;">
+          <div class="form-group" style="margin-bottom:0.5rem;">
+            <label class="form-label" for="setting-cron-workflow" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">預設執行小組工作流</label>
+            <select class="form-select" id="setting-cron-workflow" style="font-size:0.8rem; width:100%; margin-bottom:0;">
               <!-- 動態載入 -->
             </select>
           </div>
