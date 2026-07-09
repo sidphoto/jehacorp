@@ -1,0 +1,1 @@
+console.log("Welcome to 智慧共享單車調度系統 Rapid Prototype!");

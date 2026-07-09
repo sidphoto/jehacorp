@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/*.py", "use": "@vercel/python" },
+    { "src": "intro.html", "use": "@vercel/static" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "avatars/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/auth", "dest": "/api/auth.py" },
+    { "src": "/api/agents", "dest": "/api/agents.py" },
+    { "src": "/api/workflows", "dest": "/api/workflows.py" },
+    { "src": "/api/run", "dest": "/api/run.py" },
+    { "src": "/api/job", "dest": "/api/job.py" },
+    { "src": "/api/history", "dest": "/api/history.py" },
+    { "src": "/api/settings", "dest": "/api/settings.py" },
+    { "src": "/api/user_md", "dest": "/api/user_md.py" },
+    { "src": "/api/ceo_chat", "dest": "/api/ceo_chat.py" },
+    { "src": "/api/file", "dest": "/api/file.py" },
+    { "src": "/avatars/(.*)", "dest": "/avatars/$1" },
+    { "src": "/app", "dest": "/index.html" },
+    { "src": "/", "dest": "/intro.html" }
+  ]
+}

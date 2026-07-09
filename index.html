@@ -1,0 +1,3341 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>JehaCrop 一人公司多代理人團隊協同 App</title>
+  <meta name="description" content="日式極簡禪意美學與 Fable 紀律審核之多代理人自建協同開發系統">
+  
+  <!-- Google Fonts - 載入 Noto Serif TC (明體/禪意) 與 Noto Sans TC (黑體/簡約) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@500;700;900&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root {
+      /* Wabi-Sabi 禪風暖白模式 (Washi Tone) */
+      --bg-color: #faf9f6;
+      --bg-gradient: linear-gradient(180deg, #faf9f6 0%, #f4f2eb 100%);
+      --card-bg: #ffffff;
+      --card-border: #e4ded3;
+      --text-main: #2a2927;       /* 墨黑 Sumi-iro */
+      --text-muted: #7d7973;      /* 灰汁色 Aku-iro */
+      --primary: #415058;         /* 藍鼠 Ai-nezumi */
+      --primary-glow: rgba(65, 80, 88, 0.05);
+      --accent: #826251;          /* 栗皮茶 Kuripicha */
+      
+      /* 狀態顏色 - 採低飽和度自然色系 */
+      --color-success: #556c50;    /* 苔綠 Moss green */
+      --color-success-bg: #f1f5f0;
+      --color-success-border: #d4dfd2;
+      
+      --color-processing: #ab8249; /* 琥珀色 */
+      --color-processing-bg: #fbf7f0;
+      --color-processing-border: #ecdcc6;
+      
+      --color-fable: #7f6078;      /* 菖蒲紫 */
+      --color-fable-bg: #faf4f8;
+      --color-fable-border: #ecdae8;
+      
+      --color-error: #9e433d;      /* 緋紅 */
+      --color-error-bg: #fcf4f3;
+      --color-error-border: #ebd3d1;
+
+      --danger: #9e433d;
+      --font-title: 'Noto Serif TC', 'Outfit', Georgia, serif;
+      --font-body: 'Noto Sans TC', -apple-system, sans-serif;
+      --transition: all 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    [data-theme="dark"] {
+      /* Sumi-kuro 禪風炭黑模式 */
+      --bg-color: #141312;
+      --bg-gradient: linear-gradient(180deg, #181716 0%, #100f0e 100%);
+      --card-bg: #1e1d1b;
+      --card-border: #2e2c29;
+      --text-main: #e3dfd8;
+      --text-muted: #8d8981;
+      --primary: #8aa193;         /* 苔色 Sabiten */
+      --primary-glow: rgba(138, 161, 147, 0.06);
+      --accent: #b79e8a;
+      
+      --color-success: #8aa193;
+      --color-success-bg: rgba(138, 161, 147, 0.08);
+      --color-success-border: rgba(138, 161, 147, 0.18);
+      
+      --color-processing: #c5ad8b;
+      --color-processing-bg: rgba(197, 173, 139, 0.06);
+      --color-processing-border: rgba(197, 173, 139, 0.18);
+      
+      --color-fable: #b39db0;
+      --color-fable-bg: rgba(179, 157, 176, 0.06);
+      --color-fable-border: rgba(179, 157, 176, 0.18);
+      
+      --color-error: #d1928e;
+      --color-error-bg: rgba(209, 146, 142, 0.06);
+      --color-error-border: rgba(209, 146, 142, 0.18);
+      --danger: #d1928e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      letter-spacing: 0.02em;
+      line-height: 1.7;
+      transition: var(--transition);
+    }
+
+    /* SSO 登入畫面 */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-color);
+      z-index: 1200;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    .auth-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 2.5rem 1.75rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+      text-align: center;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .auth-logo {
+      font-size: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .auth-title {
+      font-family: var(--font-title);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .auth-input-group {
+      margin-bottom: 1.25rem;
+      text-align: left;
+    }
+
+    .auth-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      display: block;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-input {
+      width: 100%;
+      background: rgba(0,0,0,0.015);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 0.75rem 0.85rem;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    [data-theme="dark"] .auth-input {
+      background: rgba(255,255,255,0.015);
+    }
+
+    .auth-input:focus {
+      border-color: var(--primary);
+    }
+
+    .sso-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.75rem;
+      border-radius: 2px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      transition: var(--transition);
+    }
+
+    .sso-btn:hover {
+      background: rgba(0,0,0,0.02);
+    }
+
+    [data-theme="dark"] .sso-btn:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .sso-btn.primary {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: var(--bg-color);
+    }
+
+    /* 頂部導航 */
+    .app-header {
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      background: var(--card-bg);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .app-logo-icon {
+      font-size: 1.4rem;
+    }
+
+    .app-logo-text {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .user-badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: rgba(0,0,0,0.01);
+      border: 1px solid var(--card-border);
+      padding: 0.25rem 0.5rem;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .theme-toggle-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.15rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 0.25rem;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 主體佈局與 RWD 限制 */
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      padding-bottom: 5.5rem; /* 預留底欄高度 */
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .panel {
+      display: none;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    /* 🏛️ Desk Panel 雙欄 RWD 佈局 */
+    .desk-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .desk-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+        gap: 1.25rem;
+      }
+    }
+
+    /* 卡片與 Wabi-Sabi 留白 */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.005);
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        padding: 1.75rem;
+        margin-bottom: 1.25rem;
+      }
+    }
+
+    .card-title {
+      font-family: var(--font-title);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      letter-spacing: 0.02em;
+    }
+
+    .input-textarea {
+      width: 100%;
+      height: 90px;
+      background: rgba(0,0,0,0.01);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 0.75rem;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      resize: none;
+      outline: none;
+      transition: var(--transition);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    [data-theme="dark"] .input-textarea {
+      background: rgba(255,255,255,0.015);
+    }
+
+    .input-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .form-select {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 0.7rem;
+      color: var(--text-main);
+      font-size: 0.88rem;
+      outline: none;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+
+    .btn {
+      width: 100%;
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: var(--bg-color);
+      padding: 0.75rem;
+      border-radius: 2px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition);
+      letter-spacing: 0.05em;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(0,0,0,0.02);
+    }
+
+    /* Pipeline 佇列 */
+    .pipeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .pipeline-task-card {
+      padding: 0.95rem;
+      border-radius: 2px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .pipeline-task-card.pending { border-color: var(--card-border); }
+    .pipeline-task-card.processing { border-color: var(--color-processing-border); background: var(--color-processing-bg); }
+    .pipeline-task-card.fable-auditing { border-color: var(--color-fable-border); background: var(--color-fable-bg); }
+    .pipeline-task-card.done { border-color: var(--color-success-border); background: var(--color-success-bg); }
+    .pipeline-task-card.rejected { border-color: var(--color-error-border); background: var(--color-error-bg); }
+
+    .pipeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .pipeline-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.4rem;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pipeline-badge.pending { background: rgba(0,0,0,0.04); color: var(--text-muted); }
+    .pipeline-badge.processing { background: #fdf2e9; color: #b05c1e; }
+    .pipeline-badge.fable-auditing { background: #fbf0f8; color: #802f74; }
+    .pipeline-badge.done { background: #eef7ee; color: #325a2e; }
+    .pipeline-badge.rejected { background: #fdf2f2; color: #9c2a22; }
+
+    .pipeline-task-id {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+
+    .pipeline-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .pipeline-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pipeline-feedback {
+      margin-top: 0.65rem;
+      padding: 0.5rem 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      border-radius: 2px;
+      border: 1px dashed var(--card-border);
+      line-height: 1.5;
+    }
+
+    .pipeline-feedback.done { border-color: var(--color-success-border); color: var(--color-success); }
+    .pipeline-feedback.rejected { border-color: var(--color-error-border); color: var(--color-error); }
+    .pipeline-feedback.fable { border-color: var(--color-fable-border); color: var(--color-fable); }
+
+    .pipeline-progress-bar {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--primary);
+      width: 0;
+      transition: width 0.3s ease;
+    }
+
+    .pipeline-task-card.fable-auditing .pipeline-progress-bar {
+      background: var(--color-fable);
+    }
+
+    /* 彈性員工運算池 (Cluster) RWD 翻新 */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 480px) and (max-width: 767px) {
+      .cluster-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .cluster-card {
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border-radius: 2px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+    }
+
+    .cluster-card.offline {
+      opacity: 0.35;
+      border-style: dashed;
+    }
+
+    .cluster-card.booting {
+      border-color: var(--color-processing-border);
+      animation: pulseBorder 1.5s infinite;
+    }
+
+    .cluster-card.busy {
+      border-color: var(--primary);
+      background: var(--primary-glow);
+    }
+
+    .cluster-card.idle {
+      border-color: var(--card-border);
+    }
+
+    .cluster-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .cluster-icon {
+      font-size: 1.1rem;
+    }
+
+    .cluster-role {
+      font-weight: 700;
+      font-size: 0.8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cluster-footer {
+      margin-top: 0.65rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(0,0,0,0.03);
+      padding-top: 0.35rem;
+      font-size: 0.68rem;
+    }
+
+    [data-theme="dark"] .cluster-footer {
+      border-top-color: rgba(255,255,255,0.03);
+    }
+
+    .cluster-status-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 0.05rem 0.2rem;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.03);
+    }
+
+    [data-theme="dark"] .cluster-status-badge {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .cluster-card.busy .cluster-status-badge { background: var(--primary); color: var(--bg-color); }
+    .cluster-card.idle .cluster-status-badge { color: var(--text-muted); }
+
+    /* Fable Auditor 專屬高亮 */
+    .cluster-card.fable-auditor {
+      border-color: var(--color-fable-border) !important;
+      background: var(--color-fable-bg) !important;
+    }
+
+    /* RWD 手機版員工池精簡 (極速省空間) */
+    @media (max-width: 767px) {
+      .cluster-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: flex-start;
+      }
+      .cluster-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.72rem;
+        border-radius: 20px; /* 丸型膠囊 */
+      }
+      .cluster-card.offline {
+        display: none; /* 手機端隱藏離線 worker 以釋放垂直空間 */
+      }
+      .cluster-header {
+        margin-bottom: 0;
+      }
+      .cluster-header span:last-child {
+        display: none; /* 隱藏 ID */
+      }
+      .cluster-role {
+        font-size: 0.75rem;
+      }
+      .cluster-card div:nth-child(3) {
+        display: none; /* 隱藏 LLM 標籤 */
+      }
+      .cluster-footer {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+      .cluster-status-badge {
+        font-size: 0.58rem;
+      }
+    }
+
+    /* System Event Logs Terminal */
+    .terminal-container {
+      background: #121110;
+      border: 1px solid #2a2927;
+      border-radius: 2px;
+      padding: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      height: 130px;
+      overflow-y: auto;
+      margin-top: 1rem;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    .terminal-title {
+      font-family: var(--font-body);
+      font-weight: bold;
+      color: #8c8983;
+      margin-bottom: 0.4rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .terminal-line {
+      margin-bottom: 0.2rem;
+      line-height: 1.4;
+    }
+
+    .terminal-line.info { color: #a4a099; }
+    .terminal-line.success { color: #8aa193; }
+    .terminal-line.warning { color: #b39db0; }
+    .terminal-line.error { color: #d1928e; }
+
+    /* 🏮 推拉門式成果抽屜 (Fusuma Overlay Sheet) - 解決行動端閱讀瑕疵 */
+    .results-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 94%;
+      background: var(--bg-color);
+      border-top: 1px solid var(--card-border);
+      border-radius: 12px 12px 0 0;
+      z-index: 1100;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.08);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .results-drawer.open {
+      transform: translateY(0);
+    }
+
+    .results-drawer-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border-radius: 12px 12px 0 0;
+    }
+
+    .results-drawer-title-area {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .results-drawer-avatar {
+      font-size: 1.5rem;
+    }
+
+    .results-drawer-title {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .results-drawer-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .results-drawer-close {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      transition: var(--transition);
+    }
+
+    .results-drawer-close:hover {
+      background: rgba(0,0,0,0.03);
+    }
+
+    .results-drawer-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1.25rem;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 768px) {
+      .results-drawer-content {
+        padding: 2.5rem 2rem;
+      }
+    }
+
+    /* Markdown 排版與可讀性極致提升 */
+    .markdown-body {
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: var(--text-main);
+      font-family: var(--font-body);
+    }
+
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      font-family: var(--font-title);
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 1.75rem;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .markdown-body h1 {
+      font-size: 1.4rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.4rem;
+      margin-top: 1rem;
+    }
+
+    .markdown-body h2 { font-size: 1.22rem; }
+    .markdown-body h3 { font-size: 1.08rem; }
+    .markdown-body p { margin-bottom: 1.15rem; text-align: justify; }
+
+    .markdown-body ul, .markdown-body ol {
+      margin-bottom: 1.15rem;
+      padding-left: 1.5rem;
+    }
+
+    .markdown-body li {
+      margin-bottom: 0.4rem;
+    }
+
+    .markdown-body code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0,0,0,0.03);
+      padding: 0.15rem 0.35rem;
+      border-radius: 2px;
+      font-size: 0.82rem;
+      color: var(--danger);
+    }
+
+    [data-theme="dark"] .markdown-body code {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .markdown-body pre {
+      background: #141312;
+      padding: 1.1rem;
+      border-radius: 2px;
+      overflow-x: auto;
+      margin-bottom: 1.15rem;
+      border: 1px solid #2e2c29;
+    }
+
+    .markdown-body pre code {
+      background: none;
+      padding: 0;
+      color: #e3dfd8;
+    }
+
+    /* 👥 Staff & 📋 Teams */
+    .staff-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .staff-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 600px) {
+      .staff-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .staff-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 680px) {
+      .staff-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .staff-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .staff-card {
+      background: linear-gradient(135deg, var(--card-bg) 0%, rgba(195,166,131,0.05) 100%);
+      border: 2px solid var(--secondary);
+      border-radius: 4px;
+      padding: 1.25rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.85rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+
+    .staff-card::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      border: 1px dashed rgba(195, 166, 131, 0.3);
+      pointer-events: none;
+      border-radius: 2px;
+    }
+
+    .staff-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 10px 25px rgba(195, 166, 131, 0.15);
+      border-color: var(--primary);
+    }
+
+    .staff-avatar {
+      font-size: 2.2rem;
+      background: rgba(195, 166, 131, 0.1);
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid var(--secondary);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    [data-theme="dark"] .staff-avatar {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .staff-avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--secondary);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      background: var(--bg-main, #f8f9fa);
+      transition: border-color 0.3s ease;
+    }
+
+    .staff-card:hover .staff-avatar-img {
+      border-color: var(--primary);
+    }
+
+    .staff-info {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .staff-name {
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .staff-desc {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      background: rgba(0,0,0,0.015);
+      padding: 0.65rem 0.5rem;
+      border-radius: 2px;
+      width: 100%;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+
+    [data-theme="dark"] .staff-desc {
+      background: rgba(255,255,255,0.01);
+      border-color: rgba(255,255,255,0.03);
+    }
+
+    .teams-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .team-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 1.1rem;
+    }
+
+    .team-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .team-name {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .team-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.65rem;
+    }
+
+    .team-flow-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .flow-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: rgba(0,0,0,0.015);
+      border: 1px solid var(--card-border);
+      padding: 0.15rem 0.4rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    [data-theme="dark"] .flow-badge {
+      background: rgba(255,255,255,0.015);
+    }
+
+    .flow-badge.active {
+      background: var(--primary) !important;
+      color: var(--bg-color) !important;
+      border-color: var(--primary) !important;
+    }
+
+    /* 底部導覽列 (微調更精緻，不擋屏) */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3.8rem;
+      background: var(--card-bg);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 900;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .nav-item {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 500;
+      transition: var(--transition);
+      flex: 1;
+      padding: 0.4rem 0;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-item-icon {
+      font-size: 1.15rem;
+      transition: var(--transition);
+    }
+
+    .nav-item.active .nav-item-icon {
+      transform: translateY(-1px);
+    }
+
+    /* Modal / Overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(2px);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    .modal-card {
+      background: var(--bg-color);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    .modal-title {
+      font-family: var(--font-title);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.15rem;
+    }
+
+    .form-group {
+      margin-bottom: 0.85rem;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(0,0,0,0.015);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 0.65rem;
+      color: var(--text-main);
+      font-size: 0.88rem;
+      outline: none;
+    }
+
+    [data-theme="dark"] .form-input {
+      background: rgba(255,255,255,0.015);
+    }
+
+    .emoji-row {
+      display: flex;
+      gap: 0.35rem;
+      overflow-x: auto;
+      padding: 0.2rem 0;
+    }
+
+    .emoji-select-btn {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      width: 34px;
+      height: 34px;
+      font-size: 1.15rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+
+    .emoji-select-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-glow);
+    }
+
+    /* 團隊排序與建造 */
+    .team-builder-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .builder-item {
+      background: rgba(0,0,0,0.01);
+      border: 1px solid var(--card-border);
+      border-radius: 2px;
+      padding: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .builder-item-info {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+    }
+
+    .builder-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .builder-btn {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      width: 24px;
+      height: 24px;
+      border-radius: 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+    }
+
+    /* 檔案櫃 Archives */
+    .archives-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    /* 專案摺疊樹樣式 */
+    .project-folder-node {
+      background: var(--card-bg);
+      border: 2px solid var(--secondary);
+      border-radius: 4px;
+      margin-bottom: 0.85rem;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+    }
+    
+    .project-folder-header {
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.88rem;
+      background: linear-gradient(135deg, rgba(195,166,131,0.05) 0%, rgba(195,166,131,0.15) 100%);
+      transition: background 0.2s ease, border-color 0.2s ease;
+      position: relative;
+    }
+    
+    .project-folder-header::before {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      right: 3px;
+      bottom: 3px;
+      border: 1px dashed rgba(195, 166, 131, 0.2);
+      pointer-events: none;
+      border-radius: 2px;
+    }
+    
+    .project-folder-header:hover {
+      background: linear-gradient(135deg, rgba(195,166,131,0.1) 0%, rgba(195,166,131,0.2) 100%);
+    }
+    
+    .project-folder-content {
+      padding: 0.5rem 1rem;
+      border-top: 1px dashed rgba(195, 166, 131, 0.2);
+      background: var(--bg-main, #f8f9fa);
+    }
+    
+    .project-file-item {
+      padding: 0.65rem 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(195, 166, 131, 0.1);
+      font-size: 0.82rem;
+      transition: background 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .project-file-item:hover {
+      background: rgba(195, 166, 131, 0.08);
+      color: var(--primary);
+    }
+    
+    .project-file-item:last-child {
+      border-bottom: none;
+    }
+    
+    .archive-meta {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .archive-download-btn {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--primary);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.8rem;
+    }
+
+    .archive-download-btn:hover {
+      background: var(--primary);
+      color: var(--bg-color);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--color-success);
+      color: white;
+      padding: 0.5rem 1.1rem;
+      border-radius: 2px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.error {
+      background: var(--color-error);
+    }
+
+    @keyframes pulseBorder {
+      0%, 100% { border-color: var(--card-border); }
+      50% { border-color: var(--color-processing); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .desktop-only { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SSO 登入畫面 -->
+  <section class="auth-overlay" id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">🥋</div>
+      <h1 class="auth-title">JehaCrop</h1>
+      <p class="auth-subtitle">你。即是總裁 — 多代理人協同系統</p>
+      
+      <div class="auth-input-group">
+        <label class="auth-label" for="login-email">以總裁電子郵件登入</label>
+        <input type="email" id="login-email" class="auth-input" placeholder="ceo@company.com" value="ceo@example.com">
+      </div>
+
+      <button class="sso-btn primary" id="google-login-btn">
+        <svg style="width:14px;height:14px;margin-right:4px;" viewBox="0 0 24 24"><path fill="currentColor" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.555 0-6.435-2.88-6.435-6.435s2.88-6.435 6.435-6.435c1.642 0 3.136.618 4.29 1.63L21.36 4.39C19.04 2.27 15.93 1 12.24 1 6.033 1 12.24s5.033 11.24 11.24 11.24c5.787 0 10.74-4.08 10.74-11.24 0-.67-.06-1.32-.172-1.955H12.24z"/></svg>
+        以 Google 帳號 SSO 登入
+      </button>
+
+      <button class="sso-btn" id="apple-login-btn">
+        <svg style="width:14px;height:14px;margin-right:4px;" viewBox="0 0 24 24"><path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.18.66-2.9 1.5-.64.73-1.19 1.87-1.04 2.98 1.1.09 2.2-.55 2.95-1.42z"/></svg>
+        以 Apple 帳號 SSO 登入
+      </button>
+    </div>
+  </section>
+
+  <!-- 主應用介面 -->
+  <header class="app-header">
+    <div class="app-logo">
+      <span class="app-logo-icon">🏯</span>
+      <span class="app-logo-text">JehaCrop</span>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle-btn" id="theme-toggle-btn" title="切換禪風色彩">🌗</button>
+      <button class="btn btn-secondary" id="settings-btn" style="width:auto;padding:0.25rem 0.5rem;font-size:0.75rem;display:flex;align-items:center;gap:0.25rem;border-radius:2px;" title="系統設置">
+        <span>⚙️</span> <span class="desktop-only">設置</span>
+      </button>
+      <button class="btn btn-secondary" id="user-md-btn" style="width:auto;padding:0.25rem 0.5rem;font-size:0.75rem;display:flex;align-items:center;gap:0.25rem;border-radius:2px;">
+        <span>👤</span> <span class="desktop-only">總裁記憶</span>
+      </button>
+      <div class="user-badge" id="user-badge-display">
+        <span>🎓</span> <span id="username-display">總裁</span>
+      </div>
+      <button class="logout-btn" id="logout-btn">登出</button>
+    </div>
+  </header>
+
+  <main class="app-content">
+
+    <!-- 1. 🏛️ 辦公室 Desk Panel -->
+    <section class="panel active" id="panel-desk">
+      <!-- 專案輸入卡片 -->
+      <div class="card" id="desk-input-card">
+        <h2 class="card-title">💡 派遣協同小組</h2>
+        <textarea class="input-textarea" id="idea-input" placeholder="例如：規劃越南市場營養品合約與資安架構..."></textarea>
+        
+        <div class="form-group">
+          <label class="form-label" for="workflow-select">選擇執行的虛擬團隊 (工作流)</label>
+          <select class="form-select" id="workflow-select">
+            <!-- 動態載入 -->
+          </select>
+        </div>
+
+        <div class="desk-options" style="margin-bottom:1rem;display:flex;flex-direction:column;gap:0.4rem;">
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="mock-toggle" style="width:14px;height:14px;accent-color:var(--primary)" checked>
+            啟用模擬測試模式 (免 API 金鑰)
+          </label>
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="meeting-toggle" style="width:14px;height:14px;accent-color:var(--primary)">
+            💬 啟用小組會議對齊討論模式 (對齊成員進度)
+          </label>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;width:100%;">
+          <button class="btn btn-secondary" style="flex:1;background:var(--secondary);border-color:var(--secondary);color:#fff;font-size:0.85rem;" id="chat-ceo-btn">💬 與總裁商討方案</button>
+          <button class="btn" style="flex:1.2;font-size:0.85rem;" id="launch-btn">派遣團隊執行任務 ⚡</button>
+        </div>
+      </div>
+
+      <!-- 雙欄 RWD 狀態區 -->
+      <div class="desk-layout">
+        
+        <!-- 👑 董事長最終交付物驗收板 (Acceptance Board) -->
+        <div class="card" id="acceptance-card" style="display:none;border: 1px solid var(--secondary);box-shadow: 0 4px 20px rgba(195, 166, 131, 0.15);margin-bottom:1.25rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+            <span style="font-size:1.5rem;">👑</span>
+            <h2 class="card-title" style="margin:0;color:var(--secondary);">董事長最終交付物驗收板</h2>
+          </div>
+          <p style="font-size:0.8rem;line-height:1.5;margin-bottom:0.85rem;" id="acceptance-desc">
+            旗下團隊已完成所有步驟！執行總裁 (CEO) 已將成果整理為最終驗收報告。請董事長審查以下交付物並進行驗收判決。
+          </p>
+          
+          <div style="margin-bottom:1rem;background:#fcfbf9;padding:0.75rem;border:1px solid var(--border-color);border-radius:2px;" id="acceptance-artifacts-list">
+            <!-- 成果報告連結 -->
+          </div>
+          
+          <!-- 退回意見輸入框 -->
+          <div id="acceptance-reject-form" style="display:none;margin-bottom:1rem;">
+            <label class="form-label" for="acceptance-feedback-input" style="font-size:0.78rem;font-weight:bold;color:var(--danger);">請下達董事長退回修正建議：</label>
+            <textarea id="acceptance-feedback-input" class="input-textarea" style="height:80px;font-size:0.8rem;" placeholder="請列出您需要小組修正的具體細節（如：Header 顏色改為和風枯茶金...）"></textarea>
+          </div>
+          
+          <div style="display:flex;gap:0.5rem;" id="acceptance-actions">
+            <button class="btn btn-secondary" style="flex:1;background:var(--danger);border-color:var(--danger);color:#fff;" id="acceptance-reject-btn">❌ 退回重新修正</button>
+            <button class="btn" style="flex:1.2;" id="acceptance-approve-btn">👑 驗收通過，結案！</button>
+          </div>
+        </div>
+        
+        <!-- Pipeline 佇列 -->
+        <div class="card" id="pipeline-card" style="display:none;">
+          <h2 class="card-title">📋 Pipeline 佇列與 Fable 審查</h2>
+          <div class="pipeline-container" id="pipeline-container">
+            <!-- 動態渲染各步驟的處理與退回狀態 -->
+          </div>
+        </div>
+
+        <!-- 彈性員工運算池 (Cluster) -->
+        <div class="card" id="cluster-card" style="display:none;">
+          <h2 class="card-title">💻 彈性員工運算池 (Cluster)</h2>
+          <div class="cluster-grid" id="cluster-grid-container">
+            <!-- 動態生成各個 worker 狀態 -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Fable Event Logs (終端日誌) -->
+      <div class="terminal-container" id="terminal-card" style="display:none;">
+        <div class="terminal-title">System Event Logs (Fable Audit Stream)</div>
+        <div id="terminal-content">
+          <!-- 日誌流 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 👥 員工名冊 Staff Panel -->
+    <section class="panel" id="panel-staff">
+      <div class="staff-header">
+        <h2 style="font-family:var(--font-title);font-weight:700;font-size:1.15rem;">👥 虛擬員工名冊</h2>
+        <button class="btn btn-secondary" style="width:auto;padding:0.4rem 0.75rem;font-size:0.78rem;" id="hire-employee-btn">招募新員工 +</button>
+      </div>
+
+      <!-- 篩選器分類標籤 (和風極細 Pills) -->
+      <div class="category-filter-bar" style="display:flex;gap:0.4rem;overflow-x:auto;padding-bottom:1rem;margin-bottom:0.5rem;">
+        <button class="flow-badge active" style="cursor:pointer;border-radius:20px;padding:0.3rem 0.75rem;font-size:0.75rem;" data-filter="all">全部</button>
+        <button class="flow-badge" style="cursor:pointer;border-radius:20px;padding:0.3rem 0.75rem;font-size:0.75rem;" data-filter="development">💻 技術開發</button>
+        <button class="flow-badge" style="cursor:pointer;border-radius:20px;padding:0.3rem 0.75rem;font-size:0.75rem;" data-filter="paid-media">📊 付費投放</button>
+        <button class="flow-badge" style="cursor:pointer;border-radius:20px;padding:0.3rem 0.75rem;font-size:0.75rem;" data-filter="marketing">📱 文案行銷</button>
+        <button class="flow-badge" style="cursor:pointer;border-radius:20px;padding:0.3rem 0.75rem;font-size:0.75rem;" data-filter="custom">👤 總裁自訂</button>
+      </div>
+
+      <div class="staff-grid" id="staff-grid-container">
+        <!-- 動態載入 -->
+      </div>
+    </section>
+
+    <!-- 3. 📋 專案看板 Teams Panel -->
+    <section class="panel" id="panel-teams">
+      <div class="staff-header">
+        <h2 style="font-family:var(--font-title);font-weight:700;font-size:1.15rem;">📋 團隊工作流</h2>
+        <button class="btn btn-secondary" style="width:auto;padding:0.4rem 0.75rem;font-size:0.78rem;" id="create-team-btn">建立新團隊 +</button>
+      </div>
+
+      <div class="teams-list" id="teams-list-container">
+        <!-- 動態載入 -->
+      </div>
+    </section>
+
+    <!-- 4. 📁 檔案櫃 Archives Panel -->
+    <section class="panel" id="panel-archives">
+      <h2 style="font-family:var(--font-title);font-weight:700;font-size:1.15rem;margin-bottom:1rem;">📁 公司成果檔案櫃</h2>
+      
+      <div class="archives-list" id="archives-list-container">
+        <!-- 動態載入 -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 🏮 推拉門式成果抽屜 (Fusuma Overlay Sheet) - 解決行動端閱讀與 RWD 可讀性 -->
+  <div class="results-drawer" id="results-drawer">
+    <div class="results-drawer-header">
+      <div class="results-drawer-title-area">
+        <span class="results-drawer-avatar" id="drawer-avatar">⚡</span>
+        <h3 class="results-drawer-title" id="drawer-title">交付成果報告</h3>
+      </div>
+      <div class="results-drawer-actions">
+        <button class="btn btn-secondary" style="width:auto;padding:0.3rem 0.65rem;font-size:0.75rem;border-radius:2px;display:none;background:var(--secondary);color:#fff;border-color:var(--secondary);" id="render-sandbox-btn">🛠️ 運行工具</button>
+        <button class="btn btn-secondary" style="width:auto;padding:0.3rem 0.65rem;font-size:0.75rem;border-radius:2px;" id="download-report-btn">📥 匯出</button>
+        <button class="results-drawer-close" id="results-drawer-close" title="關閉文件">✕</button>
+      </div>
+    </div>
+    <div class="results-drawer-content" style="position:relative;height:calc(100% - 60px);">
+      <div class="markdown-body" id="markdown-content">
+        <!-- 成果 Markdown 渲染 -->
+      </div>
+      <div id="sandbox-container" style="display:none;width:100%;height:100%;">
+        <iframe id="sandbox-iframe" sandbox="allow-scripts allow-popups allow-modals" style="width:100%;height:100%;border:none;background:#fff;border-radius:4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.05);"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- 👤 AI 員工詳情與單兵指派抽屜 -->
+  <div class="results-drawer" id="agent-detail-drawer">
+    <div class="results-drawer-header">
+      <div class="results-drawer-title-area">
+        <span class="results-drawer-avatar" id="detail-agent-emoji">👤</span>
+        <h3 class="results-drawer-title" id="detail-agent-name">員工詳情</h3>
+      </div>
+      <div class="results-drawer-actions">
+        <button class="results-drawer-close" id="agent-detail-drawer-close" title="關閉">✕</button>
+      </div>
+    </div>
+    <div class="results-drawer-content">
+      <div style="background:var(--card-bg);padding:1rem;border:1px solid var(--border-color);margin-bottom:1.25rem;border-radius:2px;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:0.4rem;">💼 職務說明：</div>
+        <p id="detail-agent-desc" style="font-size:0.8rem;line-height:1.6;margin:0;color:var(--text-main);"></p>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.75rem;display:flex;gap:0.75rem;">
+          <span>🤖 算力引擎: <strong id="detail-agent-llm" style="color:var(--primary);">gpt-4o-mini</strong></span>
+          <span>🏷️ 分類部門: <strong id="detail-agent-category">技術開發</strong></span>
+        </div>
+      </div>
+
+      <!-- ⚡ 單兵指派任務表單 -->
+      <div style="border-top:1px solid var(--border-color);padding-top:1.25rem;margin-top:1.25rem;">
+        <h4 style="font-size:0.85rem;font-family:var(--font-title);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.35rem;">
+          <span>⚡</span> 單獨指派任務給此員工
+        </h4>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.75rem;">
+          指派該員工執行單一任務，完成後他會**主動向執行總裁 (CEO) 報告**，並由總裁動態決議招募哪些協同者加入。
+        </p>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" for="agent-single-command-input" style="font-size:0.78rem;font-weight:bold;">📋 董事長指派指令</label>
+          <textarea id="agent-single-command-input" class="input-textarea" style="height:100px;font-size:0.8rem;line-height:1.5;" placeholder="請輸入您希望該員工單獨完成的任務目標。例如：幫我撰寫和風茶葉線上商城的 Thread 行銷宣傳文案..."></textarea>
+        </div>
+        <button class="btn" id="launch-single-agent-btn" style="width:100%;">
+          ⚡ 開始單兵派遣，向總裁報告
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 👤 總裁習慣記憶庫抽屜 (user.md) -->
+  <div class="results-drawer" id="user-md-drawer">
+    <div class="results-drawer-header">
+      <div class="results-drawer-title-area">
+        <span class="results-drawer-avatar">🎓</span>
+        <h3 class="results-drawer-title">總裁個人偏好與習慣記憶 (user.md)</h3>
+      </div>
+      <div class="results-drawer-actions">
+        <button class="btn" style="width:auto;padding:0.3rem 0.75rem;font-size:0.75rem;border-radius:2px;" id="save-user-md-btn">💾 儲存修改</button>
+        <button class="results-drawer-close" id="user-md-drawer-close" title="關閉">✕</button>
+      </div>
+    </div>
+    <div class="results-drawer-content">
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
+        此檔案儲存於本機 <code>data/users/{user_id}/user.md</code>。所有 AI 員工在撰寫初稿或開發程式碼時，均會自動讀取並對齊此檔案中所記錄的偏好習慣。
+      </p>
+      <textarea class="input-textarea" style="height:320px;font-family:'JetBrains Mono', monospace;font-size:0.85rem;line-height:1.6;" id="user-md-textarea"></textarea>
+    </div>
+  </div>
+
+  <!-- ⚙️ 總裁系統設置抽屜 (settings.json) -->
+  <div class="results-drawer" id="settings-drawer">
+    <div class="results-drawer-header">
+      <div class="results-drawer-title-area">
+        <span class="results-drawer-avatar">⚙️</span>
+        <h3 class="results-drawer-title">總裁設置與 API 串接 (settings.json)</h3>
+      </div>
+      <div class="results-drawer-actions">
+        <button class="btn" style="width:auto;padding:0.3rem 0.75rem;font-size:0.75rem;border-radius:2px;" id="save-settings-btn">💾 儲存設置</button>
+        <button class="results-drawer-close" id="settings-drawer-close" title="關閉">✕</button>
+      </div>
+    </div>
+    <div class="results-drawer-content">
+      <!-- 🌐 後端 API 服務網址配置 -->
+      <div class="form-group" style="margin-bottom:1.25rem;border-bottom:1px solid var(--border-color);padding-bottom:1rem;">
+        <label class="form-label" for="setting-backend-url" style="display:block;margin-bottom:0.4rem;font-weight:bold;">🌐 後端服務 URL (SaaS 部署對接)</label>
+        <input type="text" id="setting-backend-url" class="form-input" placeholder="例如：https://jeha-backend.onrender.com (本機預設留空)" style="font-size:0.8rem;">
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;">
+          當您將前端上架到 Vercel 時，請在此處填入您部署在 Render/Railway 的後端 API 位址。本機測試請留空。
+        </p>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label" style="display:block;margin-bottom:0.4rem;font-weight:bold;">總裁訂閱方案</label>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="flow-badge active" style="flex:1;cursor:pointer;border-radius:2px;padding:0.5rem;justify-content:center;" id="plan-free-btn">起步版 (Free)</button>
+          <button class="flow-badge" style="flex:1;cursor:pointer;border-radius:2px;padding:0.5rem;justify-content:center;" id="plan-pro-btn">專業版 (Pro)</button>
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;" id="plan-help-text">
+          起步版：預設使用市面上免費 API 進行推論（平台預設提供，次數有限）。
+        </p>
+      </div>
+      
+      <div id="pro-keys-container" style="display:none;border-top:1px solid var(--border-color);padding-top:1rem;margin-top:1rem;">
+        <h4 style="font-size:0.85rem;font-family:var(--font-title);margin-bottom:0.75rem;">🔑 自訂 API 串接金鑰</h4>
+        <div class="form-group" style="margin-bottom:0.85rem;">
+          <label class="form-label" for="setting-openai-key" style="font-size:0.78rem;">OpenAI API Key</label>
+          <input type="password" id="setting-openai-key" class="form-input" placeholder="sk-proj-..." style="font-size:0.8rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0.85rem;">
+          <label class="form-label" for="setting-gemini-key" style="font-size:0.78rem;">Gemini API Key</label>
+          <input type="password" id="setting-gemini-key" class="form-input" placeholder="AIzaSy..." style="font-size:0.8rem;">
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-muted);">
+          * 金鑰以物理隔離形式安全儲存於您的本機伺服器，絕不上傳第三方。
+        </p>
+      </div>
+      
+      <!-- ⏱️ 自動定時派工設定 -->
+      <div id="cron-container" style="border-top:1px solid var(--border-color);padding-top:1rem;margin-top:1rem;">
+        <h4 style="font-size:0.85rem;font-family:var(--font-title);margin-bottom:0.75rem;">⏱️ 自動定時派工設定</h4>
+        <div class="form-group" style="margin-bottom:0.85rem;display:flex;align-items:center;gap:0.5rem;">
+          <input type="checkbox" id="setting-cron-enabled" style="width:auto;cursor:pointer;">
+          <label class="form-label" for="setting-cron-enabled" style="font-size:0.8rem;margin:0;cursor:pointer;font-weight:bold;">開啟自動定時派遣任務</label>
+        </div>
+        
+        <div id="cron-details-form" style="display:none;">
+          <div class="form-group" style="margin-bottom:0.85rem;">
+            <label class="form-label" for="setting-cron-schedule" style="font-size:0.78rem;">派遣時間與間隔頻率</label>
+            <select class="form-select" id="setting-cron-schedule" style="font-size:0.8rem;">
+              <option value="every_60s">每隔 60 秒測試 (推薦開發測試使用)</option>
+              <option value="daily_0900">每日早上 09:00</option>
+              <option value="weekly_monday_0900">每週一早上 09:00</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0.85rem;">
+            <label class="form-label" for="setting-cron-idea" style="font-size:0.78rem;">預設派遣點子 (Idea)</label>
+            <input type="text" id="setting-cron-idea" class="form-input" placeholder="例如：機車租賃競品分析日報" style="font-size:0.8rem;">
+          </div>
+          <div class="form-group" style="margin-bottom:0.85rem;">
+            <label class="form-label" for="setting-cron-workflow" style="font-size:0.78rem;">預設執行小組工作流</label>
+            <select class="form-select" id="setting-cron-workflow" style="font-size:0.8rem;">
+              <!-- 動態載入 -->
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 💬 總裁決策室抽屜 (CEO Discussion Room) -->
+  <div class="results-drawer" id="ceo-chat-drawer">
+    <div class="results-drawer-header">
+      <div class="results-drawer-title-area">
+        <span class="results-drawer-avatar">💬</span>
+        <h3 class="results-drawer-title">總裁決策對話室 (CEO Discussion Room)</h3>
+      </div>
+      <div class="results-drawer-actions">
+        <button class="results-drawer-close" id="ceo-chat-drawer-close" title="關閉">✕</button>
+      </div>
+    </div>
+    <div class="results-drawer-content" style="display:flex;flex-direction:column;height:calc(100% - 60px);padding:1rem;">
+      <div style="font-size:0.78rem;color:var(--text-muted);background:rgba(195, 166, 131, 0.05);padding:0.6rem;border-left:2px solid var(--secondary);margin-bottom:0.75rem;line-height:1.4;">
+        <strong>💡 董事長決策商討：</strong> 您可以在此向執行總裁 (CEO) 詳細說明專案點子與修改意見。對話達成共識後，點擊下方「確認方案，派遣執行」按鈕，總裁會將共識確實轉達給旗下 AI 成員執行。
+      </div>
+      
+      <!-- 對話歷史展示區 -->
+      <div id="ceo-chat-messages" style="flex:1;overflow-y:auto;border:1px solid var(--border-color);border-radius:2px;padding:0.75rem;margin-bottom:0.75rem;background:#fcfbf9;display:flex;flex-direction:column;gap:0.75rem;max-height: 380px;">
+        <!-- 對話內容 -->
+      </div>
+      
+      <!-- 輸入區 -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+        <input type="text" id="ceo-chat-input" class="form-input" placeholder="董事長，請下達您的修改意見或方案詢問..." style="font-size:0.85rem;">
+        <button class="btn" style="width:auto;padding:0 1rem;font-size:0.85rem;" id="ceo-chat-send-btn">發送</button>
+      </div>
+      
+      <!-- 派遣按鈕 -->
+      <button class="btn" style="width:100%;background:var(--primary);color:#fff;border-color:var(--primary);font-weight:bold;padding:0.75rem;" id="ceo-chat-launch-btn">🚀 確認方案，派遣旗下小組</button>
+    </div>
+  </div>
+
+  <!-- 底部固定導覽列 -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-panel="desk">
+      <span class="nav-item-icon">🏛️</span>
+      <span>辦公室</span>
+    </button>
+    <button class="nav-item" data-panel="staff">
+      <span class="nav-item-icon">👥</span>
+      <span>名冊</span>
+    </button>
+    <button class="nav-item" data-panel="teams">
+      <span class="nav-item-icon">📋</span>
+      <span>看板</span>
+    </button>
+    <button class="nav-item" data-panel="archives">
+      <span class="nav-item-icon">📁</span>
+      <span>檔案櫃</span>
+    </button>
+  </nav>
+
+  <!-- 招募新員工 Modal -->
+  <div class="modal-overlay" id="hire-modal">
+    <div class="modal-card">
+      <h3 class="modal-title">🤝 招募全新虛擬 AI 員工</h3>
+      
+      <div class="form-group">
+        <label class="form-label">選擇代表頭像 (Emoji)</label>
+        <div class="emoji-row" id="emoji-select-row">
+          <button class="emoji-select-btn active">👤</button>
+          <button class="emoji-select-btn">👩‍💻</button>
+          <button class="emoji-select-btn">📊</button>
+          <button class="emoji-select-btn">✍️</button>
+          <button class="emoji-select-btn">🎨</button>
+          <button class="emoji-select-btn">🤖</button>
+          <button class="emoji-select-btn">💼</button>
+          <button class="emoji-select-btn">📈</button>
+          <button class="emoji-select-btn">🔍</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-agent-name">職務名稱</label>
+        <input type="text" id="new-agent-name" class="form-input" placeholder="例如：AI 財務分析師">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-agent-desc">職責簡介 (簡短描述)</label>
+        <input type="text" id="new-agent-desc" class="form-input" placeholder="例如：專門負責成本效益分析與預算合理性稽核。">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-agent-prompt">角色定位與系統提示詞 (System Prompt)</label>
+        <textarea class="input-textarea" style="height:110px" id="new-agent-prompt" placeholder="你是一位資深財務顧問，你會審核上述專案中所有開支，並列出成本節約清單..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-agent-avatar-prompt">🎨 員工頭像插畫描述 (DALL-E 卡牌生成)</label>
+        <input type="text" id="new-agent-avatar-prompt" class="form-input" placeholder="例如：一隻戴著科技風鏡寫程式的星際哈士奇，3D 卡牌插畫風格">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-agent-llm">LLM 模型來源串接</label>
+        <select class="form-select" id="new-agent-llm" style="margin-bottom:0.5rem;">
+          <option value="gpt-4o-mini">OpenAI gpt-4o-mini (推薦，高CP值)</option>
+          <option value="gpt-4o">OpenAI gpt-4o (強大代碼與推論)</option>
+          <option value="gemini-1.5-flash">Gemini gemini-1.5-flash (快速低時延)</option>
+          <option value="gemini-1.5-pro">Gemini gemini-1.5-pro (超大上下文)</option>
+          <option value="mock-model">Mock Model (本地模擬模式)</option>
+          <option value="custom-llm">✍️ 自訂其他 LLM 模型名稱 (無限制自選)</option>
+        </select>
+        <input type="text" id="new-agent-llm-custom" class="form-input" placeholder="例如：gpt-4-turbo 或 gemini-2.0-flash-exp" style="display:none;font-size:0.8rem;">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-agent-category">員工職業分類</label>
+        <select class="form-select" id="new-agent-category">
+          <option value="custom">👤 總裁自訂類 (預設)</option>
+          <option value="development">💻 技術與開發類</option>
+          <option value="paid-media">📊 付費投放與 PPC 類</option>
+          <option value="marketing">📱 文案與社群行銷類</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+        <button class="btn btn-secondary" id="hire-cancel-btn">取消</button>
+        <button class="btn" id="hire-confirm-btn">確認招募</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 建立團隊工作流 Modal -->
+  <div class="modal-overlay" id="team-modal">
+    <div class="modal-card">
+      <h3 class="modal-title">📋 配置新的虛擬協作團隊</h3>
+      
+      <div class="form-group">
+        <label class="form-label" for="new-team-name">團隊名稱</label>
+        <input type="text" id="new-team-name" class="form-input" placeholder="例如：行銷文案特攻隊">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new-team-desc">團隊職能描述</label>
+        <input type="text" id="new-team-desc" class="form-input" placeholder="例如：專注於多管道行銷創意文案與增長指標優化。">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">成員配置與任務排序 (上下調整執行先後順序)</label>
+        <div class="team-builder-list" id="team-builder-container">
+          <!-- 動態生成勾選與排序 -->
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+        <button class="btn btn-secondary" id="team-cancel-btn">取消</button>
+        <button class="btn" id="team-confirm-btn">確認儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示框 -->
+  <div class="toast" id="toast-message">提示訊息</div>
+
+  <script>
+    // 狀態管理
+    let currentUser = null;
+    let BACKEND_URL = localStorage.getItem('jeha_backend_url') || '';
+    let agentsList = [];
+    let workflowsList = [];
+    let selectedEmoji = '👤';
+    let sseSource = null;
+    
+    // Fable 實時運行狀態
+    let pipelineTasks = [];
+    let clusterWorkers = [];
+    let tickTimer = null;
+
+    // 深淺色彩切換
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    themeBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      localStorage.setItem('jehacrop_theme', nextTheme);
+    });
+
+    // 載入儲存的主題
+    const savedTheme = localStorage.getItem('jehacrop_theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // Toast 顯示
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast-message');
+      toast.textContent = msg;
+      if (isError) {
+        toast.classList.add('error');
+      } else {
+        toast.classList.remove('error');
+      }
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // 檢查認證狀態
+    function checkAuth() {
+      const savedUser = localStorage.getItem('jehacrop_user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('username-display').textContent = currentUser.name;
+        initializeAppData();
+      } else {
+        document.getElementById('auth-overlay').style.display = 'flex';
+      }
+    }
+
+    // 發送帶驗證的 API 請求 (動態串接 BACKEND_URL 以支援跨來源部署)
+    async function apiRequest(url, method = 'GET', data = null) {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (currentUser && currentUser.token) {
+        headers['Authorization'] = `Bearer ${currentUser.token}`;
+      }
+      
+      const config = {
+        method,
+        headers
+      };
+      if (data) {
+        config.body = JSON.stringify(data);
+      }
+
+      try {
+        const targetUrl = (url.startsWith('http') || !BACKEND_URL) ? url : `${BACKEND_URL}${url}`;
+        const response = await fetch(targetUrl, config);
+        if (response.status === 401) {
+          currentUser = null;
+          localStorage.removeItem('jehacrop_user');
+          document.getElementById('auth-overlay').style.display = 'flex';
+          const err = await response.json();
+          showToast(err.error || '請先通過 SSO 註冊會員，方可使用！', true);
+          throw new Error('未授權');
+        }
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'API 請求失敗');
+        }
+        return await response.json();
+      } catch (e) {
+        if (e.message !== '未授權') {
+          showToast(e.message, true);
+        }
+        throw e;
+      }
+    }
+
+    // 載入系統設置 (實現無感跨端金鑰同步)
+    async function loadSettings() {
+      try {
+        const data = await apiRequest('/api/settings');
+        if (data) {
+          setSubscriptionUI(data.subscription || 'free');
+          settingOpenaiKey.value = data.openai_api_key || '';
+          settingGeminiKey.value = data.gemini_api_key || '';
+          
+          cronEnabledCheckbox.checked = data.cron_enabled || false;
+          cronDetailsForm.style.display = data.cron_enabled ? 'block' : 'none';
+          document.getElementById('setting-cron-schedule').value = data.cron_schedule || 'every_60s';
+          document.getElementById('setting-cron-idea').value = data.cron_idea || '';
+          document.getElementById('setting-cron-workflow').value = data.cron_workflow || 'mvp';
+        }
+      } catch (e) {
+        console.error("無法無感載入金鑰設定：", e);
+      }
+    }
+
+    // 初始化應用程式資料
+    async function initializeAppData() {
+      try {
+        populateCronWorkflows();
+        await Promise.all([
+          loadAgents(),
+          loadWorkflows(),
+          loadHistory(),
+          loadSettings()
+        ]);
+      } catch (e) {
+        console.error("載入初始化資料失敗", e);
+      }
+    }
+
+    // 載入代理人庫 (支援 RWD 分類篩選)
+    async function loadAgents(filterCategory = 'all') {
+      agentsList = await apiRequest('/api/agents');
+      
+      let filtered = agentsList;
+      if (filterCategory !== 'all') {
+        filtered = agentsList.filter(ag => ag.category === filterCategory);
+      }
+
+      const grid = document.getElementById('staff-grid-container');
+      if (filtered.length === 0) {
+        grid.innerHTML = `<p style="font-size:0.82rem;color:var(--text-muted);grid-column:1/-1;text-align:center;padding:2rem;">此分類下暫無配置的 AI 員工。</p>`;
+        return;
+      }
+      grid.innerHTML = filtered.map(ag => {
+        const rawUrl = ag.avatar_url || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + ag.id);
+        const imgUrl = (rawUrl.startsWith('http') || !BACKEND_URL) ? rawUrl : `${BACKEND_URL}${rawUrl}`;
+        return `
+          <div class="staff-card" style="cursor:pointer;" onclick="showAgentDetail('${ag.id}')">
+            <div class="staff-avatar" style="background:none;border:none;box-shadow:none;">
+              <img src="${imgUrl}" class="staff-avatar-img">
+            </div>
+          <div class="staff-info">
+            <div class="staff-name">${ag.name}</div>
+            <div class="staff-desc">${ag.description || '暫無職務描述。'}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.35rem;display:flex;align-items:center;gap:0.25rem;">
+              <span>🤖</span> <span>${ag.llm_source || 'gpt-4o-mini'}</span>
+              <span style="opacity:0.35;">|</span>
+              <span>🏷️</span> <span>${translateCategory(ag.category)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function translateCategory(cat) {
+      const map = {
+        'development': '技術開發',
+        'paid-media': '付費廣告',
+        'marketing': '文案行銷',
+        'custom': '總裁自訂'
+      };
+      return map[cat] || cat || '總裁自訂';
+    }
+
+    // 載入工作流
+    async function loadWorkflows() {
+      workflowsList = await apiRequest('/api/workflows');
+      
+      const select = document.getElementById('workflow-select');
+      select.innerHTML = workflowsList.map(wf => `
+        <option value="${wf.id}">${wf.name}</option>
+      `).join('');
+
+      const list = document.getElementById('teams-list-container');
+      list.innerHTML = workflowsList.map(wf => {
+        const badges = wf.flow.map(id => {
+          const ag = agentsList.find(a => a.id === id);
+          return `<span class="flow-badge">${ag ? ag.emoji : '👤'} ${ag ? ag.name.split(' ')[0] : id}</span>`;
+        }).join('');
+
+        return `
+          <div class="team-card">
+            <div class="team-header">
+              <div class="team-name">${wf.name}</div>
+            </div>
+            <div class="team-desc">${wf.description || '這是一個自訂的工作流小組。'}</div>
+            <div class="team-flow-badges">
+              ${badges}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 載入檔案歷史 (以專案為單位構建展開摺疊檔案樹)
+    async function loadHistory() {
+      const history = await apiRequest('/api/history');
+      const container = document.getElementById('archives-list-container');
+      if (!history || history.length === 0) {
+        container.innerHTML = `<p style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:2rem;">暫無歷史產出的報告與代碼。</p>`;
+        return;
+      }
+      
+      container.innerHTML = history.map((proj, idx) => {
+        const isFirst = idx === 0 ? 'block' : 'none';
+        const folderArrow = idx === 0 ? '▼' : '▶';
+        
+        const filesHtml = proj.files.length === 0 
+          ? `<p style="font-size:0.75rem;color:var(--text-muted);padding:0.5rem 0.25rem;">此專案尚無產出檔案。</p>`
+          : proj.files.map(f => {
+              const fileUrl = (!BACKEND_URL) ? `/${f.relative_path}` : `${BACKEND_URL}/${f.relative_path}`;
+              return `
+                <div class="project-file-item" onclick="viewArchiveFile('${f.relative_path}', '${f.filename}')">
+                  <div style="display:flex; align-items:center; gap:0.4rem; min-width:0;">
+                    <span>📄</span>
+                    <span style="font-weight:600; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${f.filename}</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+                    <span style="font-size:0.65rem; color:var(--text-muted); opacity:0.7;">${(f.size / 1024).toFixed(1)} KB</span>
+                    <a href="${fileUrl}" download="${f.filename}" onclick="event.stopPropagation();" class="archive-download-btn" style="text-decoration:none; font-size:0.75rem; opacity:0.8; padding:0.15rem 0.25rem;" title="下載此檔案">
+                      📥
+                    </a>
+                  </div>
+                </div>
+              `;
+            }).join('');
+
+        return `
+          <div class="project-folder-node" id="proj-node-${proj.project_id}">
+            <div class="project-folder-header" onclick="toggleProjectFolder('${proj.project_id}')">
+              <span style="display:flex; align-items:center; gap:0.4rem;">
+                <span id="proj-arrow-${proj.project_id}">${folderArrow}</span>
+                <span>📁 ${proj.project_name}</span>
+              </span>
+              <span style="font-size:0.68rem; color:var(--text-muted); font-weight:normal;">${proj.created_at}</span>
+            </div>
+            <div class="project-folder-content" id="proj-content-${proj.project_id}" style="display: ${isFirst};">
+              ${filesHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 摺疊與展開控制
+    window.toggleProjectFolder = function(projId) {
+      const content = document.getElementById(`proj-content-${projId}`);
+      const arrow = document.getElementById(`proj-arrow-${projId}`);
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        arrow.textContent = '▶';
+      }
+    };
+
+    // 👁️ 在瀏覽器/App中預覽歸檔檔案
+    window.viewArchiveFile = async function(path, filename) {
+      try {
+        const targetUrl = (!BACKEND_URL) ? `/${path}` : `${BACKEND_URL}/${path}`;
+        const response = await fetch(targetUrl);
+        if (!response.ok) throw new Error("讀取檔案內容失敗");
+        const text = await response.text();
+        
+        const detailTitle = document.getElementById('drawer-title');
+        const detailBody = document.getElementById('markdown-content');
+        document.getElementById('drawer-avatar').textContent = '📄';
+        
+        // 渲染新分頁開啟與下載按鈕
+        detailTitle.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span>📄 ${filename}</span>
+            <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+              <a href="${targetUrl}" target="_blank" class="btn" style="padding:0.3rem 0.6rem; font-size:0.72rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.25rem;">
+                👁️ 在新分頁預覽
+              </a>
+              <a href="${targetUrl}" download="${filename}" class="btn" style="padding:0.3rem 0.6rem; font-size:0.72rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.25rem;">
+                ⬇️ 下載
+              </a>
+            </div>
+          </div>
+        `;
+        
+        if (filename.endsWith('.md')) {
+          detailBody.innerHTML = `<div class="markdown-body">${marked.parse(text)}</div>`;
+        } else {
+          detailBody.innerHTML = `<pre style="white-space:pre-wrap; background:var(--bg-main); padding:1rem; border-radius:4px; border:1px solid var(--secondary); font-family:monospace; font-size:0.78rem; color:var(--text-main);">${escapeHtml(text)}</pre>`;
+        }
+        
+        // 確保 iframe sandbox 隱藏，僅顯示 markdown-content 容器
+        document.getElementById('sandbox-container').style.display = 'none';
+        detailBody.style.display = 'block';
+        
+        resultsDrawer.classList.add('open');
+      } catch (e) {
+        showToast("預覽載入失敗：" + e.message, true);
+      }
+    };
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // 切換面板
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const panelId = btn.getAttribute('data-panel');
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(`panel-${panelId}`).classList.add('active');
+        
+        if (panelId === 'archives') {
+          loadHistory();
+        } else if (panelId === 'staff') {
+          loadAgents();
+        } else if (panelId === 'teams') {
+          loadWorkflows();
+        }
+      });
+    });
+
+    // SSO 模擬登入
+    document.getElementById('google-login-btn').addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value.trim();
+      if (!email || !email.includes('@')) {
+        showToast('請先輸入正確的電子郵件格式！', true);
+        return;
+      }
+      
+      const authData = await apiRequest('/api/auth', 'POST', { email });
+      if (authData) {
+        currentUser = authData;
+        localStorage.setItem('jehacrop_user', JSON.stringify(currentUser));
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('username-display').textContent = currentUser.name;
+        showToast(`歡迎回來，${currentUser.name} 總裁！`);
+        initializeAppData();
+      }
+    });
+
+    document.getElementById('apple-login-btn').addEventListener('click', () => {
+      document.getElementById('google-login-btn').click();
+    });
+
+    // 登出
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('jehacrop_user');
+      currentUser = null;
+      document.getElementById('auth-overlay').style.display = 'flex';
+      showToast('已安全登出公司管理系統。');
+    });
+
+    // Modal 招募員工
+    const hireModal = document.getElementById('hire-modal');
+    document.getElementById('hire-employee-btn').addEventListener('click', () => {
+      hireModal.style.display = 'flex';
+    });
+
+    document.getElementById('hire-cancel-btn').addEventListener('click', () => {
+      hireModal.style.display = 'none';
+    });
+
+    // Emoji 挑選
+    document.querySelectorAll('.emoji-select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.emoji-select-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedEmoji = btn.textContent;
+      });
+    });
+
+    // 監聽大腦模型選擇，若是自訂模型則動態展示輸入框
+    const newAgentLlmSelect = document.getElementById('new-agent-llm');
+    const newAgentLlmCustomInput = document.getElementById('new-agent-llm-custom');
+    newAgentLlmSelect.addEventListener('change', () => {
+      if (newAgentLlmSelect.value === 'custom-llm') {
+        newAgentLlmCustomInput.style.display = 'block';
+        newAgentLlmCustomInput.focus();
+      } else {
+        newAgentLlmCustomInput.style.display = 'none';
+      }
+    });
+
+    document.getElementById('hire-confirm-btn').addEventListener('click', async () => {
+      const name = document.getElementById('new-agent-name').value.trim();
+      const description = document.getElementById('new-agent-desc').value.trim();
+      const system_prompt = document.getElementById('new-agent-prompt').value.trim();
+      const avatar_prompt = document.getElementById('new-agent-avatar-prompt').value.trim();
+      
+      let llm_source = newAgentLlmSelect.value;
+      if (llm_source === 'custom-llm') {
+        llm_source = newAgentLlmCustomInput.value.trim();
+        if (!llm_source) {
+          showToast('請填寫自訂的 LLM 模型名稱！', true);
+          return;
+        }
+      }
+      
+      const category = document.getElementById('new-agent-category').value;
+
+      if (!name || !system_prompt) {
+        showToast('請填寫職務名稱與詳細系統提示詞！', true);
+        return;
+      }
+
+      const res = await apiRequest('/api/agents', 'POST', {
+        name,
+        emoji: selectedEmoji,
+        description,
+        system_prompt,
+        llm_source,
+        category,
+        avatar_prompt
+      });
+
+      if (res) {
+        showToast(res.message);
+        document.getElementById('new-agent-avatar-prompt').value = '';
+        hireModal.style.display = 'none';
+        document.getElementById('new-agent-name').value = '';
+        document.getElementById('new-agent-desc').value = '';
+        document.getElementById('new-agent-prompt').value = '';
+        newAgentLlmSelect.value = 'gpt-4o-mini';
+        newAgentLlmCustomInput.value = '';
+        newAgentLlmCustomInput.style.display = 'none';
+        document.getElementById('new-agent-category').value = 'custom';
+        loadAgents();
+      }
+    });
+
+    // Modal 建立團隊
+    const teamModal = document.getElementById('team-modal');
+    let builderSelectedFlow = [];
+
+    document.getElementById('create-team-btn').addEventListener('click', () => {
+      renderTeamBuilder();
+      teamModal.style.display = 'flex';
+    });
+
+    document.getElementById('team-cancel-btn').addEventListener('click', () => {
+      teamModal.style.display = 'none';
+    });
+
+    function renderTeamBuilder() {
+      const container = document.getElementById('team-builder-container');
+      
+      const groups = {
+        'development': { name: '💻 技術與開發類', agents: [] },
+        'paid-media': { name: '📊 付費投放與 PPC 類', agents: [] },
+        'marketing': { name: '📱 文案與社群行銷類', agents: [] },
+        'custom': { name: '👤 總裁自訂類', agents: [] }
+      };
+
+      agentsList.forEach(ag => {
+        const cat = ag.category || 'custom';
+        if (groups[cat]) {
+          groups[cat].agents.push(ag);
+        } else {
+          groups['custom'].agents.push(ag);
+        }
+      });
+
+      let html = '';
+      for (const key in groups) {
+        const group = groups[key];
+        if (group.agents.length === 0) continue;
+
+        html += `
+          <div style="font-family:var(--font-title);font-weight:700;font-size:0.82rem;color:var(--primary);margin-top:0.85rem;margin-bottom:0.35rem;border-bottom:1px solid var(--card-border);padding-bottom:0.15rem;letter-spacing:0.05em;">
+            ${group.name}
+          </div>
+        `;
+
+        html += group.agents.map(ag => {
+          const index = builderSelectedFlow.indexOf(ag.id);
+          const checked = index !== -1 ? 'checked' : '';
+          const orderLabel = index !== -1 ? `<span style="background:var(--primary);color:var(--bg-color);border-radius:50%;width:15px;height:15px;font-size:0.6rem;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;margin-right:2px;">${index + 1}</span>` : '';
+
+          return `
+            <div class="builder-item">
+              <label class="builder-item-info" style="cursor:pointer;flex:1;">
+                <input type="checkbox" style="margin-right:0.4rem;width:14px;height:14px;accent-color:var(--primary)" data-agent="${ag.id}" ${checked} onchange="toggleAgentSelection('${ag.id}')">
+                <span>${ag.emoji || '👤'}</span>
+                <span>${ag.name}</span>
+              </label>
+              <div class="builder-actions" style="display:${index !== -1 ? 'flex' : 'none'}">
+                ${orderLabel}
+                <button class="builder-btn" onclick="moveAgentInFlow('${ag.id}', -1)">▲</button>
+                <button class="builder-btn" onclick="moveAgentInFlow('${ag.id}', 1)">▼</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
+    window.toggleAgentSelection = function(agentId) {
+      const idx = builderSelectedFlow.indexOf(agentId);
+      if (idx === -1) {
+        builderSelectedFlow.push(agentId);
+      } else {
+        builderSelectedFlow.splice(idx, 1);
+      }
+      renderTeamBuilder();
+    };
+
+    window.moveAgentInFlow = function(agentId, direction) {
+      const idx = builderSelectedFlow.indexOf(agentId);
+      if (idx === -1) return;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= builderSelectedFlow.length) return;
+      
+      const temp = builderSelectedFlow[idx];
+      builderSelectedFlow[idx] = builderSelectedFlow[targetIdx];
+      builderSelectedFlow[targetIdx] = temp;
+      renderTeamBuilder();
+    };
+
+    document.getElementById('team-confirm-btn').addEventListener('click', async () => {
+      const name = document.getElementById('new-team-name').value.trim();
+      const description = document.getElementById('new-team-desc').value.trim();
+
+      if (!name || builderSelectedFlow.length === 0) {
+        showToast('請填寫團隊名稱，且至少挑選一位成員！', true);
+        return;
+      }
+
+      const res = await apiRequest('/api/workflows', 'POST', {
+        name,
+        description,
+        flow: builderSelectedFlow
+      });
+
+      if (res) {
+        showToast(res.message);
+        teamModal.style.display = 'none';
+        document.getElementById('new-team-name').value = '';
+        document.getElementById('new-team-desc').value = '';
+        builderSelectedFlow = [];
+        loadWorkflows();
+      }
+    });
+
+    // 🏛️ Desk Fable 狀態機調度引擎
+    const launchBtn = document.getElementById('launch-btn');
+    const ideaInput = document.getElementById('idea-input');
+    const pipelineCard = document.getElementById('pipeline-card');
+    const clusterCard = document.getElementById('cluster-card');
+    const terminalCard = document.getElementById('terminal-card');
+    
+    // 🏮 推拉門式成果抽屜控制
+    const resultsDrawer = document.getElementById('results-drawer');
+    const drawerAvatar = document.getElementById('drawer-avatar');
+    const drawerTitle = document.getElementById('drawer-title');
+    const markdownContent = document.getElementById('markdown-content');
+    
+    document.getElementById('results-drawer-close').addEventListener('click', () => {
+      resultsDrawer.classList.remove('open');
+    });
+
+    // 系統日誌記錄
+    function addTerminalLog(message, type = 'info') {
+      const content = document.getElementById('terminal-content');
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const line = document.createElement('div');
+      line.className = `terminal-line ${type}`;
+      line.innerHTML = `<span style="opacity:0.4;margin-right:6px;">[${time}]</span> ${message}`;
+      content.appendChild(line);
+      content.scrollTop = content.scrollHeight;
+    }
+
+    // 渲染 Fable Pipeline 佇列
+    function renderPipeline() {
+      const container = document.getElementById('pipeline-container');
+      container.innerHTML = pipelineTasks.map(t => {
+        let statusText = t.status;
+        let cardClass = t.status;
+        
+        if (t.status === 'fable_auditing') {
+          statusText = '🔍 Fable 盲測審核中';
+        } else if (t.status === 'fable_rejected') {
+          statusText = '❌ 審核未通過 (重做)';
+        } else if (t.status === 'security_rejected') {
+          statusText = '⚠️ 偵測到資安漏洞';
+          cardClass = 'rejected';
+        } else if (t.status === 'thinking') {
+          statusText = t.retryCount > 0 ? `🤔 修正中 (Retry ${t.retryCount})` : '🤔 撰寫初稿中';
+          cardClass = 'processing';
+        } else if (t.status === 'writing') {
+          statusText = '💾 產出寫檔中';
+          cardClass = 'processing';
+        } else if (t.status === 'meeting_discussing') {
+          statusText = '💬 小組對齊會議中';
+          cardClass = 'processing';
+        } else if (t.status === 'completed') {
+          statusText = '✅ 雙重審核通過';
+          cardClass = 'done';
+        }
+
+        const feedbackHtml = t.fableFeedback ? `
+          <div class="pipeline-feedback ${t.status === 'completed' ? 'done' : (t.status === 'fable_rejected' || t.status === 'security_rejected' ? 'rejected' : 'fable')}">
+            ${t.fableFeedback}
+          </div>
+        ` : '';
+
+        const discussionHtml = t.discussion ? `
+          <div class="pipeline-feedback" style="background: rgba(195, 166, 131, 0.08); border-left: 2px solid var(--secondary); padding: 0.5rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-main); font-family: monospace; white-space: pre-wrap; line-height: 1.4; border-radius: 2px;">
+            ${t.discussion}
+          </div>
+        ` : '';
+
+        const actionPrompt = t.status === 'completed' ? `
+          <div style="margin-top: 0.6rem; text-align: right; font-size: 0.75rem; color: var(--color-success); font-weight: bold;">
+            📖 點擊閱讀交付報告 →
+          </div>
+        ` : '';
+
+        return `
+          <div class="pipeline-task-card ${cardClass}" id="task-card-${t.id}" style="cursor:pointer;" onclick="selectTaskReport('${t.id}')">
+            <div class="pipeline-progress-bar" style="width: ${t.progress}%"></div>
+            <div class="pipeline-header">
+              <span class="pipeline-badge ${cardClass}">${statusText}</span>
+              <span class="pipeline-task-id">${t.id} ${t.retryCount > 0 ? `<span style="color:var(--danger)">[Retry ${t.retryCount}]</span>` : ''}</span>
+            </div>
+            <div class="pipeline-name">${t.name}</div>
+            <div class="pipeline-desc">${t.desc}</div>
+            ${discussionHtml}
+            ${feedbackHtml}
+            ${actionPrompt}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 點擊卡片瀏覽報告
+    window.selectTaskReport = function(agentId) {
+      const task = pipelineTasks.find(t => t.id === agentId);
+      if (task && task.report_file) {
+        viewReport(agentId, task.name, task.emoji, task.report_file);
+      } else {
+        showToast("該步驟尚未執行完畢，請耐心等待報告出爐。", true);
+      }
+    };
+
+    // 渲染彈性運算池 (Cluster Status)
+    function renderCluster() {
+      const container = document.getElementById('cluster-grid-container');
+      container.innerHTML = clusterWorkers.map(w => {
+        let statusLabel = w.status;
+        let cardClass = w.status;
+        
+        if (w.status === 'offline') {
+          statusLabel = 'Scale to Zero';
+        }
+
+        return `
+          <div class="cluster-card ${cardClass} ${w.id === 'Fable_Auditor' ? 'fable-auditor' : ''}">
+            <div class="cluster-header">
+              <span class="cluster-icon">${w.emoji}</span>
+              <span style="font-size:0.65rem;font-family:monospace;opacity:0.5;">${w.id}</span>
+            </div>
+            <div class="cluster-role">${w.name}</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:0.25rem;display:flex;align-items:center;gap:0.2rem;">
+              <span>🤖</span> <span>${w.llm_source || 'gpt-4o-mini'}</span>
+            </div>
+            <div class="cluster-footer">
+              <span class="cluster-status-badge">${statusLabel}</span>
+              ${w.idleTicks > 0 && w.status === 'idle' ? `<span style="font-size:0.65rem;opacity:0.4;">Idle: ${w.idleTicks}t</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 通用專案發起與小組工作流派遣執行函數 (支援決策共識、驗收意見傳參與單兵指派模式)
+    async function startWorkflowExecution(consensus = "", feedback = "", singleAgent = false, singleCommand = "") {
+      let idea = "";
+      let wfId = "";
+      
+      if (singleAgent) {
+        idea = singleCommand;
+        wfId = activeDetailAgentId;
+      } else {
+        idea = ideaInput.value.trim();
+        wfId = document.getElementById('workflow-select').value;
+      }
+      
+      const mock = document.getElementById('mock-toggle').checked ? 'true' : 'false';
+
+      if (!idea) {
+        showToast(singleAgent ? '請先輸入您指派給該員工的任務指令！' : '請先輸入您的一人公司專案點子！', true);
+        return;
+      }
+
+      // 隱藏驗收卡片
+      document.getElementById('acceptance-card').style.display = 'none';
+
+      // 鎖定派遣按鈕
+      launchBtn.disabled = true;
+      launchBtn.textContent = '協作會議進行中...';
+      
+      // 顯示監控面板與終端日誌
+      pipelineCard.style.display = 'block';
+      clusterCard.style.display = 'block';
+      terminalCard.style.display = 'block';
+      resultsDrawer.classList.remove('open');
+      
+      // 清空或追加日誌
+      if (!feedback) {
+        document.getElementById('terminal-content').innerHTML = '';
+        addTerminalLog(singleAgent ? `[單兵派遣] 指令：「${idea}」` : `[專案啟動] 點子：「${idea}」`, 'success');
+        if (consensus) {
+          addTerminalLog(`[決策共識] 💡 載入董事長與 CEO 商討共識做為最高執行指導。`, 'info');
+        }
+      } else {
+        addTerminalLog(`[驗收退回] ❌ 董事長退回了專案成果！最高指示：${feedback}。小組啟動第二輪針對性修正...`, 'warning');
+      }
+
+      // 取得工作流中的代理人
+      let flowSteps = [];
+      if (singleAgent) {
+        flowSteps = [activeDetailAgentId];
+      } else {
+        const currentWf = workflowsList.find(w => w.id === wfId);
+        flowSteps = currentWf ? currentWf.flow : [];
+      }
+
+      // 初始化 Pipeline Tasks
+      pipelineTasks = [
+        {
+          id: 'system-coordinator',
+          name: '專案簡報 (project_brief.md)',
+          emoji: '📁',
+          desc: '為小組成員自動整理全局案件簡報，讓彼此快速掌握狀況。',
+          status: 'pending',
+          progress: 0,
+          retryCount: 0,
+          fableFeedback: '',
+          report_file: null,
+          discussion: ''
+        },
+        ...flowSteps.map(agentId => {
+          const ag = agentsList.find(a => a.id === agentId);
+          return {
+            id: agentId,
+            name: ag ? ag.name : agentId,
+            emoji: ag ? ag.emoji : '👤',
+            desc: ag ? ag.description : '小組成員',
+            status: 'pending',
+            progress: 0,
+            retryCount: 0,
+            fableFeedback: '',
+            report_file: null,
+            discussion: ''
+          };
+        })
+      ];
+      renderPipeline();
+
+      // 初始化彈性運算池
+      clusterWorkers = flowSteps.map(agentId => {
+        const ag = agentsList.find(a => a.id === agentId);
+        return {
+          id: agentId,
+          name: ag ? ag.name.split(' ')[0] : agentId,
+          emoji: ag ? ag.emoji : '👤',
+          llm_source: ag ? ag.llm_source : 'gpt-4o-mini',
+          status: 'offline', 
+          idleTicks: 0
+        };
+      });
+      renderCluster();
+
+      // 啟動前端心跳定時器
+      if (tickTimer) clearInterval(tickTimer);
+      tickTimer = setInterval(() => {
+        let stateChanged = false;
+        clusterWorkers = clusterWorkers.map(w => {
+          if (w.status === 'idle') {
+            const nextTicks = w.idleTicks + 1;
+            if (nextTicks >= 4) {
+              addTerminalLog(`[Scale to Zero] 員工 【${w.name}】 閒置過久，已自動回收以節省運算預算。`, 'info');
+              stateChanged = true;
+              return { ...w, status: 'offline', idleTicks: 0 };
+            }
+            return { ...w, idleTicks: nextTicks };
+          }
+          return w;
+        });
+        if (stateChanged) renderCluster();
+      }, 1000);
+
+      // ── Polling 機制（相容 Vercel Serverless，取代 SSE 長連線）────────────────
+      const meetingMode = document.getElementById('meeting-toggle').checked;
+      
+      // 1. POST /api/run 啟動任務，取得 job_id
+      let pollingPayload = { idea, mock: mock === 'true', workflow: wfId, meeting: meetingMode };
+      if (consensus) pollingPayload.discussion = consensus;
+      if (feedback) pollingPayload.feedback = feedback;
+      if (singleAgent) pollingPayload.single_agent = true;
+      
+      let processedEventCount = 0;
+      let pollingIntervalId = null;
+      let currentJobId = null;
+      
+      // 處理單一事件 (共用邏輯，與原 SSE onmessage 相同)
+      function handleJobEvent(data) {
+        if (data.status === 'error') {
+          showToast(data.error, true);
+          addTerminalLog(`[執行錯誤] ${data.error}`, 'error');
+          resetLaunch();
+          if (pollingIntervalId) clearInterval(pollingIntervalId);
+        } else if (data.status === 'thinking') {
+          updateTaskState(data.agent_id, { status: 'thinking', progress: 30, retryCount: data.retry_count, fableFeedback: data.fable_feedback || '' });
+          if (data.agent_id !== 'system-coordinator') setWorkerStatus(data.agent_id, 'busy', data.llm_source);
+          if (data.retry_count === 0) {
+            addTerminalLog(`[任務派遣] 派遣員工 【${data.agent_name}】 撰寫初稿中...`, 'info');
+          } else {
+            addTerminalLog(`[重做啟動] 召回原班人馬 【${data.agent_name}】 進行修正 (Retry ${data.retry_count})`, 'warning');
+          }
+        } else if (data.status === 'meeting_discussing') {
+          updateTaskState(data.agent_id, { status: 'meeting_discussing', progress: 15, discussion: data.discussion });
+          addTerminalLog(`[會議討論] 💬 ${data.agent_name} 的會議對齊對談完成，已取得共識。`, 'info');
+        } else if (data.status === 'writing') {
+          updateTaskState(data.agent_id, { status: 'writing', progress: 60 });
+        } else if (data.status === 'fable_auditing') {
+          updateTaskState(data.agent_id, { status: 'fable_auditing', progress: 85 });
+          setWorkerStatus(data.agent_id, 'idle');
+          addAuditorWorker('busy');
+          addTerminalLog(`[初稿完成] ${data.agent_name} 初稿產出，移交執行總裁 (CEO) 進行 Code Review 監督...`, 'warning');
+        } else if (data.status === 'fable_rejected') {
+          updateTaskState(data.agent_id, { status: 'fable_rejected', progress: 0, retryCount: data.retry_count, fableFeedback: data.fable_feedback });
+          setAuditorStatus('idle');
+          addTerminalLog(`[Review 退回] ❌ 總裁 Code Review 未通過！原因：${data.fable_feedback}`, 'error');
+        } else if (data.status === 'security_auditing') {
+          updateTaskState(data.agent_id, { status: 'security_auditing', progress: 92 });
+          addTerminalLog(`[資安掃描] 🛡️ 總裁進行 OWASP Top 10 資安合規漏洞檢測審查中...`, 'warning');
+        } else if (data.status === 'security_rejected') {
+          updateTaskState(data.agent_id, { status: 'security_rejected', progress: 0, retryCount: data.retry_count, fableFeedback: data.security_feedback });
+          addTerminalLog(`[資安退回] ❌ 總裁資安 Review 拒絕！偵測到高危漏洞。原因：${data.security_feedback}`, 'error');
+        } else if (data.status === 'completed') {
+          updateTaskState(data.agent_id, { status: 'completed', progress: 100, fableFeedback: data.fable_feedback, report_file: data.report_file });
+          if (data.agent_id !== 'system-coordinator') { setWorkerStatus(data.agent_id, 'idle'); setAuditorStatus('idle'); }
+          addTerminalLog(`[Review 通過] ✅ 總裁雙重 Review 順利通過！`, 'success');
+          if (data.step === 0 || data.step === 1) viewReport(data.agent_id, data.agent_name, data.emoji, data.report_file);
+        } else if (data.status === 'finished') {
+          addTerminalLog(`[協同結束] 👑 執行總裁 (CEO) 已將成果整理呈交，等待董事長最終驗收。`, 'success');
+          showToast("交付成果已呈交，請進行最終驗收！");
+          const acceptanceCard = document.getElementById('acceptance-card');
+          const artifactsList = document.getElementById('acceptance-artifacts-list');
+          const projectId = data.project_id || '';
+          artifactsList.innerHTML = `
+            <div style="font-weight:bold;margin-bottom:0.4rem;font-size:0.8rem;">📦 專案交付檔案清單：</div>
+            <ul style="margin:0;padding-left:1.2rem;font-size:0.78rem;line-height:1.6;">
+              <li><strong>👑 <a href="#" onclick="viewFileFromKV('${projectId}', 'acceptance_report.md'); return false;" style="color:var(--secondary);text-decoration:underline;">Acceptance_report.md (最終驗收報告)</a></strong></li>
+              ${data.all_written_files ? data.all_written_files.filter(fname => fname !== 'acceptance_report.md').map(fname => `<li>📄 <a href="#" onclick="viewFileFromKV('${projectId}', '${fname}'); return false;" style="color:var(--text-main);text-decoration:underline;">${fname}</a></li>`).join('') : ''}
+            </ul>
+          `;
+          acceptanceCard.style.display = 'block';
+          acceptanceCard.scrollIntoView({ behavior: 'smooth' });
+          document.getElementById('acceptance-reject-form').style.display = 'none';
+          document.getElementById('acceptance-feedback-input').value = '';
+          const rejectBtn = document.getElementById('acceptance-reject-btn');
+          rejectBtn.textContent = '❌ 退回重新修正';
+          rejectBtn.style.background = 'var(--danger)';
+          if (pollingIntervalId) clearInterval(pollingIntervalId);
+          loadHistory();
+        } else if (data.status === 'workflow_extended') {
+          data.collaborators.forEach(col => {
+            if (!pipelineTasks.some(t => t.id === col.id)) {
+              pipelineTasks.push({ id: col.id, name: col.name, emoji: col.emoji, desc: col.description, status: 'pending', progress: 0, retryCount: 0, fableFeedback: '', report_file: null, discussion: '' });
+              clusterWorkers.push({ id: col.id, name: col.name.split(' ')[0], emoji: col.emoji, llm_source: 'gpt-4o-mini', status: 'offline', idleTicks: 0 });
+            }
+          });
+          renderPipeline();
+          renderCluster();
+          addTerminalLog(`[總裁招募] 👑 執行總裁動態招募了協同隊員！`, 'success');
+        }
+      }
+
+      // 2. 啟動任務
+      try {
+        const runEndpoint = (!BACKEND_URL) ? '/api/run' : `${BACKEND_URL}/api/run`;
+        const runRes = await apiRequest('/api/run', 'POST', pollingPayload);
+        if (!runRes || !runRes.job_id) throw new Error(runRes?.error || '無法啟動任務');
+        currentJobId = runRes.job_id;
+        addTerminalLog(`[任務啟動] 🚀 任務已提交後端！Job ID: ${currentJobId}，開始輪詢進度...`, 'info');
+      } catch(e) {
+        showToast('任務啟動失敗：' + e.message, true);
+        resetLaunch();
+        return;
+      }
+
+      // 3. 輪詢 /api/job?id=<job_id> 每 1.5s 拉取最新事件
+      pollingIntervalId = setInterval(async () => {
+        try {
+          const jobState = await apiRequest(`/api/job?id=${currentJobId}`, 'GET');
+          if (!jobState) return;
+          // 只處理新的事件（避免重複渲染）
+          const events = jobState.events || [];
+          if (events.length > processedEventCount) {
+            const newEvents = events.slice(processedEventCount);
+            newEvents.forEach(ev => handleJobEvent(ev));
+            processedEventCount = events.length;
+          }
+          if (jobState.finished) {
+            clearInterval(pollingIntervalId);
+            resetLaunch();
+          }
+        } catch(e) {
+          console.warn('輪詢中斷：', e.message);
+        }
+      }, 1500);
+      // 儲存 pollingIntervalId 以便 resetLaunch 時清除
+      sseSource = { close: () => { if (pollingIntervalId) clearInterval(pollingIntervalId); } };
+    }
+
+    launchBtn.addEventListener('click', () => {
+      startWorkflowExecution();
+    });
+
+    function resetLaunch() {
+      launchBtn.disabled = false;
+      launchBtn.textContent = '派遣團隊執行任務 ⚡';
+      if (sseSource) sseSource.close();
+    }
+
+    // 從 KV 讀取並預覽 AI 成果檔案（Vercel 版）
+    window.viewFileFromKV = async function(projectId, filename) {
+      try {
+        const url = (!BACKEND_URL) ? `/api/file?project=${encodeURIComponent(projectId)}&file=${encodeURIComponent(filename)}` : `${BACKEND_URL}/api/file?project=${encodeURIComponent(projectId)}&file=${encodeURIComponent(filename)}`;
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
+        if (!response.ok) throw new Error('讀取失敗');
+        const text = await response.text();
+        document.getElementById('drawer-avatar').textContent = '📄';
+        const detailTitle = document.getElementById('drawer-title');
+        detailTitle.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;width:100%;"><span>📄 ${filename}</span><div style="display:flex;gap:0.5rem;"><a href="${url}" target="_blank" class="btn" style="padding:0.3rem 0.6rem;font-size:0.72rem;text-decoration:none;">👁️ 新分頁</a><a href="${url}" download="${filename}" class="btn" style="padding:0.3rem 0.6rem;font-size:0.72rem;text-decoration:none;">⬇️ 下載</a></div></div>`;
+        const detailBody = document.getElementById('markdown-content');
+        document.getElementById('sandbox-container').style.display = 'none';
+        detailBody.style.display = 'block';
+        detailBody.innerHTML = filename.endsWith('.md') ? `<div class="markdown-body">${marked.parse(text)}</div>` : `<pre style="white-space:pre-wrap;">${text}</pre>`;
+        resultsDrawer.classList.add('open');
+      } catch(e) {
+        showToast('預覽載入失敗：' + e.message, true);
+      }
+    };
+
+    function updateTaskState(agentId, updates) {
+      pipelineTasks = pipelineTasks.map(t => {
+        if (t.id === agentId) {
+          return { ...t, ...updates };
+        }
+        return t;
+      });
+      renderPipeline();
+    }
+
+    // 員工池狀態變更 (支援傳入 llmSource 更新屬性)
+    function setWorkerStatus(agentId, status, llmSource = null) {
+      clusterWorkers = clusterWorkers.map(w => {
+        if (w.id === agentId) {
+          let updatedLlm = w.llm_source;
+          if (llmSource) updatedLlm = llmSource;
+
+          if (status === 'busy') {
+            // 如果原本是 offline，代表需要 Booting 拉起
+            if (w.status === 'offline') {
+              addTerminalLog(`[彈性擴展] 正在本機拉起 (Booting) 員工 【${w.name}】 的運算節點...`, 'info');
+            }
+            return { ...w, status: 'busy', llm_source: updatedLlm, idleTicks: 0 };
+          }
+          return { ...w, status, llm_source: updatedLlm, idleTicks: 0 };
+        }
+        return w;
+      });
+      renderCluster();
+    }
+
+    // Fable Auditor 在運算池中的動態介入
+    function addAuditorWorker(status) {
+      // 檢查是否已在運算池中
+      const hasAuditor = clusterWorkers.some(w => w.id === 'Fable_Auditor');
+      if (!hasAuditor) {
+        addTerminalLog(`[紀律介入] 獨立的 Fable Auditor 審查官已介入調度池。`, 'warning');
+        clusterWorkers.push({
+          id: 'Fable_Auditor',
+          name: 'Fable 審查官',
+          emoji: '🔍',
+          llm_source: 'gpt-4o',
+          status: status,
+          idleTicks: 0
+        });
+      } else {
+        clusterWorkers = clusterWorkers.map(w => {
+          if (w.id === 'Fable_Auditor') {
+            return { ...w, status: status, idleTicks: 0 };
+          }
+          return w;
+        });
+      }
+      renderCluster();
+    }
+
+    function setAuditorStatus(status) {
+      clusterWorkers = clusterWorkers.map(w => {
+        if (w.id === 'Fable_Auditor') {
+          return { ...w, status: status, idleTicks: 0 };
+        }
+        return w;
+      });
+      renderCluster();
+    }
+
+    // 預處理後端寫檔標記與 Fable 備註為標準 Markdown 排版
+    function preprocessMarkdown(text) {
+      if (!text) return "";
+      
+      // 1. 正規匹配 [FILE: filepath] code [FILE_END]
+      const filePattern = /\[FILE:\s*(.*?)\]([\s\S]*?)\[FILE_END\]/g;
+      let processed = text.replace(filePattern, (match, filepath, filecontent) => {
+        filepath = filepath.trim();
+        let lang = 'javascript';
+        if (filepath.endsWith('.sql')) lang = 'sql';
+        else if (filepath.endsWith('.css')) lang = 'css';
+        else if (filepath.endsWith('.html')) lang = 'html';
+        else if (filepath.endsWith('.py')) lang = 'python';
+        else if (filepath.endsWith('.json')) lang = 'json';
+        else if (filepath.endsWith('.sh')) lang = 'bash';
+        
+        return `\n\n**📁 自動寫入本機檔案：\`${filepath}\`**\n\`\`\`${lang}\n${filecontent.trim()}\n\`\`\`\n\n`;
+      });
+
+      // 2. 將退件修正日誌備註，轉化為優美的 Blockquote 引用樣式
+      const notePattern = /(備註\s*：\s*此版本已針對[\s\S]*?完成對齊優化。)/g;
+      processed = processed.replace(notePattern, (match) => {
+        return `\n\n> **📝 Fable 審查修復日誌**  \n> ${match}\n\n`;
+      });
+
+      return processed;
+    }
+
+    // 檢視成果 Markdown
+    let activeAgentReport = null;
+    let currentReportHtmlCode = "";
+    
+    async function viewReport(agentId, agentName, emoji, filepath) {
+      activeAgentReport = filepath;
+      drawerAvatar.textContent = emoji || '👤';
+      drawerTitle.textContent = agentName;
+      markdownContent.innerHTML = "<p>正在載入成果文件...</p>";
+
+      // 重置沙盒展示狀態為文件視圖
+      markdownContent.style.display = 'block';
+      document.getElementById('sandbox-container').style.display = 'none';
+      document.getElementById('sandbox-iframe').srcdoc = '';
+      const renderSandboxBtn = document.getElementById('render-sandbox-btn');
+      renderSandboxBtn.textContent = '🛠️ 運行工具';
+      renderSandboxBtn.style.background = 'var(--secondary)';
+      renderSandboxBtn.style.borderColor = 'var(--secondary)';
+
+      try {
+        const targetFileUrl = (!BACKEND_URL) ? `/${filepath}` : `${BACKEND_URL}/${filepath}`;
+        const response = await fetch(targetFileUrl);
+        if (!response.ok) throw new Error("讀取成果失敗");
+        const text = await response.text();
+        const processedText = preprocessMarkdown(text);
+        markdownContent.innerHTML = marked.parse(processedText);
+        
+        // 正則解析提取可執行的 HTML/JS 程式碼以供沙盒鍛造
+        let extractedHtml = "";
+        const filePattern = /\[FILE:\s*(?:.*?)\.html\]([\s\S]*?)\[FILE_END\]/i;
+        const fileMatch = text.match(filePattern);
+        if (fileMatch) {
+          extractedHtml = fileMatch[1].trim();
+        } else {
+          const mdPattern = /```html([\s\S]*?)```/i;
+          const mdMatch = text.match(mdPattern);
+          if (mdMatch) {
+            extractedHtml = mdMatch[1].trim();
+          }
+        }
+        
+        if (extractedHtml) {
+          currentReportHtmlCode = extractedHtml;
+          renderSandboxBtn.style.display = 'inline-block';
+        } else {
+          currentReportHtmlCode = "";
+          renderSandboxBtn.style.display = 'none';
+        }
+        
+        // 載入完成後，平滑拉起推拉門 (Fusuma drawer)
+        setTimeout(() => {
+          resultsDrawer.classList.add('open');
+        }, 100);
+      } catch (e) {
+        markdownContent.innerHTML = `<p style="color:var(--danger)">無法讀取本機成果檔案：${e.message}</p>`;
+      }
+    }
+
+    // 實裝 Tool Forging 即時沙盒切換事件
+    const renderSandboxBtn = document.getElementById('render-sandbox-btn');
+    const sandboxContainer = document.getElementById('sandbox-container');
+    const sandboxIframe = document.getElementById('sandbox-iframe');
+
+    renderSandboxBtn.addEventListener('click', () => {
+      if (sandboxContainer.style.display === 'none') {
+        markdownContent.style.display = 'none';
+        sandboxContainer.style.display = 'block';
+        sandboxIframe.srcdoc = currentReportHtmlCode;
+        renderSandboxBtn.textContent = '📄 查看文件';
+        renderSandboxBtn.style.background = 'var(--primary)';
+        renderSandboxBtn.style.borderColor = 'var(--primary)';
+      } else {
+        markdownContent.style.display = 'block';
+        sandboxContainer.style.display = 'none';
+        sandboxIframe.srcdoc = '';
+        renderSandboxBtn.textContent = '🛠️ 運行工具';
+        renderSandboxBtn.style.background = 'var(--secondary)';
+        renderSandboxBtn.style.borderColor = 'var(--secondary)';
+      }
+    });
+
+    document.getElementById('download-report-btn').addEventListener('click', () => {
+      if (activeAgentReport) {
+        downloadFile(activeAgentReport);
+      }
+    });
+
+    // 初始化認證狀態
+    checkAuth();
+
+    // 💬 總裁決策對話室 (CEO Discussion Room) 互動控制
+    const chatCeoBtn = document.getElementById('chat-ceo-btn');
+    const ceoChatDrawer = document.getElementById('ceo-chat-drawer');
+    const ceoChatMessages = document.getElementById('ceo-chat-messages');
+    const ceoChatInput = document.getElementById('ceo-chat-input');
+    const ceoChatSendBtn = document.getElementById('ceo-chat-send-btn');
+    const ceoChatLaunchBtn = document.getElementById('ceo-chat-launch-btn');
+    
+    let ceoChatHistory = [];
+    let lastConsensusText = ""; // 儲存與總裁討論的最後共識
+
+    function addCeoChatMessage(role, text) {
+      const msg = document.createElement('div');
+      msg.style.padding = '0.5rem 0.75rem';
+      msg.style.borderRadius = '2px';
+      msg.style.fontSize = '0.8rem';
+      msg.style.lineHeight = '1.5';
+      msg.style.marginBottom = '0.5rem';
+      
+      if (role === 'user') {
+        msg.style.background = 'rgba(124, 58, 237, 0.05)';
+        msg.style.borderLeft = '2px solid var(--primary)';
+        msg.innerHTML = `<strong>董事長：</strong> ${text}`;
+      } else {
+        msg.style.background = 'rgba(195, 166, 131, 0.05)';
+        msg.style.borderLeft = '2px solid var(--secondary)';
+        msg.innerHTML = `<strong>執行總裁 (CEO)：</strong> ${text.replace(/\n/g, '<br>')}`;
+      }
+      ceoChatMessages.appendChild(msg);
+      ceoChatMessages.scrollTop = ceoChatMessages.scrollHeight;
+    }
+
+    chatCeoBtn.addEventListener('click', () => {
+      const idea = ideaInput.value.trim();
+      if (!idea) {
+        showToast('請先輸入您的一人公司專案點子！', true);
+        return;
+      }
+      
+      ceoChatDrawer.classList.add('open');
+      ceoChatMessages.innerHTML = '';
+      ceoChatHistory = [];
+      lastConsensusText = "";
+      
+      addCeoChatMessage('assistant', `董事長您好！我是執行總裁 (CEO)。收到您發起的新點子：「${idea}」。我已經讀取了您的 user.md 習慣庫。請問您對此專案有何最高戰略指令？例如是否需要對接特別 API、重視特定資安要求或行銷受眾規劃？我會為您整合方案共識！`);
+    });
+
+    document.getElementById('ceo-chat-drawer-close').addEventListener('click', () => {
+      ceoChatDrawer.classList.remove('open');
+    });
+
+    async function sendCeoChatMessage() {
+      const text = ceoChatInput.value.trim();
+      if (!text) return;
+      
+      addCeoChatMessage('user', text);
+      ceoChatInput.value = '';
+      
+      const payload = {
+        idea: ideaInput.value.trim(),
+        message: text,
+        history: ceoChatHistory
+      };
+      
+      ceoChatHistory.push({ role: 'user', content: text });
+      
+      try {
+        const res = await apiRequest('/api/ceo_chat', 'POST', payload);
+        if (res && res.reply) {
+          addCeoChatMessage('assistant', res.reply);
+          ceoChatHistory.push({ role: 'assistant', content: res.reply });
+          lastConsensusText = res.reply; // 記錄最後總裁的方案總結做為共識
+        }
+      } catch (e) {
+        showToast("總裁回應失敗：" + e.message, true);
+      }
+    }
+
+    ceoChatSendBtn.addEventListener('click', sendCeoChatMessage);
+    
+    ceoChatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendCeoChatMessage();
+    });
+
+    ceoChatLaunchBtn.addEventListener('click', () => {
+      ceoChatDrawer.classList.remove('open');
+      // 開始派遣，傳入與總裁討論的最後共識
+      startWorkflowExecution(lastConsensusText, "");
+    });
+
+    // 👑 董事長最終驗收板事件綁定
+    const acceptanceApproveBtn = document.getElementById('acceptance-approve-btn');
+    const acceptanceRejectBtn = document.getElementById('acceptance-reject-btn');
+    const acceptanceRejectForm = document.getElementById('acceptance-reject-form');
+    const acceptanceFeedbackInput = document.getElementById('acceptance-feedback-input');
+
+    acceptanceApproveBtn.addEventListener('click', () => {
+      document.getElementById('acceptance-card').style.display = 'none';
+      resetLaunch();
+      showToast("👑 專案已通過董事長最終驗收核准，正式結案！");
+      addTerminalLog(`[驗收核准] 👑 專案順利通過董事長最終驗收核准！結案存檔。`, 'success');
+    });
+
+    acceptanceRejectBtn.addEventListener('click', () => {
+      if (acceptanceRejectForm.style.display === 'none') {
+        acceptanceRejectForm.style.display = 'block';
+        acceptanceRejectBtn.textContent = '⚠️ 確認退回修正';
+        acceptanceRejectBtn.style.background = '#dc2626';
+        acceptanceFeedbackInput.focus();
+      } else {
+        const feedback = acceptanceFeedbackInput.value.trim();
+        if (!feedback) {
+          showToast('請下達具體的董事長退回修正建議！', true);
+          return;
+        }
+        
+        document.getElementById('acceptance-card').style.display = 'none';
+        
+        // 重新啟動派遣，此時傳入之前的討論共識及退回修正意見
+        startWorkflowExecution(lastConsensusText, feedback);
+      }
+    });
+
+    // 👤 總裁習慣記憶庫 (user.md) 互動控制
+    const userMdBtn = document.getElementById('user-md-btn');
+    const userMdDrawer = document.getElementById('user-md-drawer');
+    const userMdTextarea = document.getElementById('user-md-textarea');
+    const saveUserMdBtn = document.getElementById('save-user-md-btn');
+    
+    userMdBtn.addEventListener('click', async () => {
+      try {
+        const data = await apiRequest('/api/user_md');
+        if (data && data.content) {
+          userMdTextarea.value = data.content;
+          userMdDrawer.classList.add('open');
+        }
+      } catch (e) {
+        showToast("無法載入總裁記憶庫：" + e.message, true);
+      }
+    });
+
+    // 👤 AI 員工詳情與單兵指派互動控制
+    let activeDetailAgentId = null;
+
+    window.showAgentDetail = function(id) {
+      const ag = agentsList.find(a => a.id === id);
+      if (!ag) return;
+      
+      activeDetailAgentId = id;
+      const rawUrl = ag.avatar_url || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + ag.id);
+      const imgUrl = (rawUrl.startsWith('http') || !BACKEND_URL) ? rawUrl : `${BACKEND_URL}${rawUrl}`;
+      document.getElementById('detail-agent-emoji').innerHTML = `<img src="${imgUrl}" class="staff-avatar-img" style="width:48px;height:48px;">`;
+      document.getElementById('detail-agent-name').textContent = ag.name;
+      document.getElementById('detail-agent-desc').textContent = ag.description || '暫無職務描述。';
+      document.getElementById('detail-agent-llm').textContent = ag.llm_source || 'gpt-4o-mini';
+      document.getElementById('detail-agent-category').textContent = translateCategory(ag.category);
+      
+      document.getElementById('agent-single-command-input').value = '';
+      document.getElementById('agent-detail-drawer').classList.add('open');
+    };
+
+    document.getElementById('agent-detail-drawer-close').addEventListener('click', () => {
+      document.getElementById('agent-detail-drawer').classList.remove('open');
+    });
+
+    document.getElementById('launch-single-agent-btn').addEventListener('click', () => {
+      const command = document.getElementById('agent-single-command-input').value.trim();
+      if (!command) {
+        showToast("請先輸入您指派給該員工的任務指令！", true);
+        return;
+      }
+      
+      // 關閉詳情抽屜
+      document.getElementById('agent-detail-drawer').classList.remove('open');
+      
+      // 切換至「🏢 辦公室運作 (office)」面板，讓用戶看見派遣過程
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      const officeNavBtn = document.querySelector('.nav-item[data-panel="office"]');
+      if (officeNavBtn) officeNavBtn.classList.add('active');
+      
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      const officePanel = document.getElementById('panel-office');
+      if (officePanel) officePanel.classList.add('active');
+      
+      // 開始單兵派遣
+      startWorkflowExecution("", "", true, command);
+    });
+
+    document.getElementById('user-md-drawer-close').addEventListener('click', () => {
+      userMdDrawer.classList.remove('open');
+    });
+
+    saveUserMdBtn.addEventListener('click', async () => {
+      const newContent = userMdTextarea.value;
+      saveUserMdBtn.disabled = true;
+      saveUserMdBtn.textContent = "儲存中...";
+      
+      try {
+        const res = await apiRequest('/api/user_md', 'POST', { content: newContent });
+        if (res) {
+          showToast(res.message);
+          userMdDrawer.classList.remove('open');
+        }
+      } catch (e) {
+        showToast("儲存失敗：" + e.message, true);
+      } finally {
+        saveUserMdBtn.disabled = false;
+        saveUserMdBtn.textContent = "💾 儲存修改";
+      }
+    });
+
+    // ⚙️ 總裁系統設置 (settings.json) 互動控制
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsDrawer = document.getElementById('settings-drawer');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const planFreeBtn = document.getElementById('plan-free-btn');
+    const planProBtn = document.getElementById('plan-pro-btn');
+    const planHelpText = document.getElementById('plan-help-text');
+    const proKeysContainer = document.getElementById('pro-keys-container');
+    const settingOpenaiKey = document.getElementById('setting-openai-key');
+    const settingGeminiKey = document.getElementById('setting-gemini-key');
+    const settingBackendUrl = document.getElementById('setting-backend-url');
+
+    let currentSubscription = 'free';
+
+    function setSubscriptionUI(sub) {
+      currentSubscription = sub;
+      if (sub === 'pro') {
+        planProBtn.classList.add('active');
+        planFreeBtn.classList.remove('active');
+        proKeysContainer.style.display = 'block';
+        planHelpText.textContent = "專業版：完全解鎖自訂 API 串接（使用您個人的 API Keys，算力自理，不受平台頻率限制）。";
+      } else {
+        planFreeBtn.classList.add('active');
+        planProBtn.classList.remove('active');
+        proKeysContainer.style.display = 'none';
+        planHelpText.textContent = "起步版：預設使用市面上免費 API 進行推論（平台預設提供，次數有限）。";
+      }
+    }
+
+    planFreeBtn.addEventListener('click', () => setSubscriptionUI('free'));
+    planProBtn.addEventListener('click', () => setSubscriptionUI('pro'));
+
+    // ⏱️ 自動定時派工設定表單動態展示與資料填充
+    const cronEnabledCheckbox = document.getElementById('setting-cron-enabled');
+    const cronDetailsForm = document.getElementById('cron-details-form');
+    
+    cronEnabledCheckbox.addEventListener('change', () => {
+      cronDetailsForm.style.display = cronEnabledCheckbox.checked ? 'block' : 'none';
+    });
+
+    function populateCronWorkflows() {
+      const select = document.getElementById('setting-cron-workflow');
+      select.innerHTML = workflowsList.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+    }
+
+    settingsBtn.addEventListener('click', async () => {
+      try {
+        const data = await apiRequest('/api/settings');
+        if (data) {
+          setSubscriptionUI(data.subscription || 'free');
+          settingOpenaiKey.value = data.openai_api_key || '';
+          settingGeminiKey.value = data.gemini_api_key || '';
+          
+          // 定時派工設定填充
+          populateCronWorkflows();
+          cronEnabledCheckbox.checked = data.cron_enabled || false;
+          cronDetailsForm.style.display = data.cron_enabled ? 'block' : 'none';
+          document.getElementById('setting-cron-schedule').value = data.cron_schedule || 'every_60s';
+          document.getElementById('setting-cron-idea').value = data.cron_idea || '';
+          document.getElementById('setting-cron-workflow').value = data.cron_workflow || 'mvp';
+          
+          // 後端網址填充
+          settingBackendUrl.value = BACKEND_URL;
+          
+          settingsDrawer.classList.add('open');
+        }
+      } catch (e) {
+        showToast("無法載入設置：" + e.message, true);
+      }
+    });
+
+    document.getElementById('settings-drawer-close').addEventListener('click', () => {
+      settingsDrawer.classList.remove('open');
+    });
+
+    saveSettingsBtn.addEventListener('click', async () => {
+      saveSettingsBtn.disabled = true;
+      saveSettingsBtn.textContent = "儲存中...";
+      
+      const payload = {
+        subscription: currentSubscription,
+        openai_api_key: settingOpenaiKey.value.trim(),
+        gemini_api_key: settingGeminiKey.value.trim(),
+        cron_enabled: cronEnabledCheckbox.checked,
+        cron_schedule: document.getElementById('setting-cron-schedule').value,
+        cron_idea: document.getElementById('setting-cron-idea').value.trim(),
+        cron_workflow: document.getElementById('setting-cron-workflow').value
+      };
+
+      try {
+        const res = await apiRequest('/api/settings', 'POST', payload);
+        if (res) {
+          showToast(res.message);
+          
+          // 保存自訂後端網址到本機 localStorage
+          const bUrl = settingBackendUrl.value.trim();
+          BACKEND_URL = bUrl.endsWith('/') ? bUrl.slice(0, -1) : bUrl;
+          localStorage.setItem('jeha_backend_url', BACKEND_URL);
+          
+          settingsDrawer.classList.remove('open');
+        }
+      } catch (e) {
+        showToast("儲存失敗：" + e.message, true);
+      } finally {
+        saveSettingsBtn.disabled = false;
+        saveSettingsBtn.textContent = "💾 儲存設置";
+      }
+    });
+
+    // 綁定員工名冊分類篩選 Pills 按鈕
+    document.querySelectorAll('.category-filter-bar button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.category-filter-bar button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.getAttribute('data-filter');
+        loadAgents(filter);
+      });
+    });
+  </script>
+</body>
+</html>

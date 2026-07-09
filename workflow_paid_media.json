@@ -1,0 +1,12 @@
+{
+  "agents_path": ".agents/skills",
+  "output_path": "mvp_output",
+  "flow": [
+    "paid-media-auditor",
+    "tracking-measurement-specialist",
+    "ppc-campaign-strategist",
+    "search-query-analyst",
+    "ad-creative-strategist",
+    "analytics-reporter"
+  ]
+}

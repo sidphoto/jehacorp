@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JehaCrop — 你。即是總裁 AI 協同平台</title>
+  
+  <!-- 引入 Google Fonts Noto Serif TC (優雅明體) 與 Outfit (現代無襯線) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Wabi-Sabi 禪意色彩系統 (和風淺色偏好) */
+      --bg-color: #fcfbfa;        /* 絕美和紙米白 */
+      --card-bg: rgba(255, 255, 255, 0.7); /* 磨砂玻璃白 */
+      --primary: #2e4057;         /* 藍鼠青 (沉靜靛藍) */
+      --secondary: #c3a683;       /* 枯茶金 (亮點金色) */
+      --text-main: #232526;       /* 墨黑 */
+      --text-muted: #787a7d;      /* 苔灰 */
+      --border-color: rgba(46, 64, 87, 0.08); /* 竹細線灰 */
+      --color-success: #557a46;   /* 抹茶綠 */
+      --glow-orb: rgba(195, 166, 131, 0.12); /* 枯茶金光暈 */
+      
+      --font-title: 'Noto Serif TC', serif;
+      --font-body: 'Outfit', 'Noto Sans TC', sans-serif;
+    }
+
+    [data-theme="dark"] {
+      /* 禪夜深色模式 - 仿 Cube 高質感暗色 */
+      --bg-color: #0b0d0e;
+      --card-bg: rgba(20, 24, 28, 0.6);
+      --primary: #8fa9c4;
+      --secondary: #e6c8a3;
+      --text-main: #e8e6e3;
+      --text-muted: #838587;
+      --border-color: rgba(143, 169, 196, 0.08);
+      --color-success: #82a078;
+      --glow-orb: rgba(230, 200, 163, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), 
+                  border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), 
+                  color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.8;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      
+      /* 參考 Cube 的精細網格背景 (Grid Background) */
+      background-image: linear-gradient(var(--border-color) 1px, transparent 1px), 
+                        linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* 仿 Cube 首屏的磨砂發光漸層圓盤 (Blurry Glow Orbs) */
+    .glow-orb-bg {
+      position: absolute;
+      top: -10%;
+      left: 30%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, var(--glow-orb) 0%, transparent 70%);
+      filter: blur(80px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* 頂部極簡導覽列 */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 8%;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(252, 251, 250, 0.75);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    [data-theme="dark"] .navbar {
+      background: rgba(11, 13, 14, 0.75);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-title);
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--primary);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.2rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      color: var(--primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.5rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 2px;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: var(--bg-color);
+      letter-spacing: 0.05em;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(46, 64, 87, 0.12);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: var(--bg-color);
+    }
+
+    /* Hero 首屏 */
+    .hero-section {
+      padding: 8rem 8% 6rem 8%;
+      text-align: center;
+      max-width: 950px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .hero-tag {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      color: var(--secondary);
+      margin-bottom: 1.5rem;
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+    }
+
+    .hero-title {
+      font-family: var(--font-title);
+      font-size: 3.5rem;
+      font-weight: 900;
+      line-height: 1.25;
+      color: var(--text-main);
+      margin-bottom: 2rem;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.9;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1.25rem;
+      justify-content: center;
+    }
+
+    /* 合作夥伴 Logo 牆 (和風虛擬品牌) */
+    .partner-section {
+      padding: 2rem 8%;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .partner-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .partner-grid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4rem;
+      flex-wrap: wrap;
+      opacity: 0.65;
+    }
+
+    .partner-logo {
+      font-family: var(--font-title);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* 產品特色區塊 */
+    .features-section {
+      padding: 6.5rem 8%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-family: var(--font-title);
+      font-size: 2.15rem;
+      text-align: center;
+      margin-bottom: 4rem;
+      position: relative;
+      letter-spacing: 0.05em;
+    }
+    
+    .section-title::after {
+      content: '';
+      display: block;
+      width: 50px;
+      height: 1px;
+      background: var(--secondary);
+      margin: 1rem auto 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2.5rem;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      padding: 3rem 2.25rem;
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--secondary);
+      box-shadow: 0 12px 36px rgba(46, 64, 87, 0.04);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-name {
+      font-family: var(--font-title);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.85rem;
+    }
+
+    .feature-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* 📱 多平台未來規劃互動版塊 */
+    .roadmap-section {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 6.5rem 8%;
+    }
+
+    .roadmap-container {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      align-items: center;
+    }
+
+    .mockup-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mockup-img {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 12px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+      border: 1px solid var(--border-color);
+    }
+
+    .platform-tabs {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .platform-tab-btn {
+      text-align: left;
+      padding: 1.25rem 1.75rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 2px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .platform-tab-btn.active {
+      border-color: var(--primary);
+      border-left: 4px solid var(--primary);
+      background: var(--bg-color);
+    }
+
+    .tab-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-main);
+    }
+
+    .tab-status {
+      font-size: 0.68rem;
+      background: var(--border-color);
+      color: var(--text-muted);
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      font-weight: bold;
+    }
+
+    .platform-tab-btn.active .tab-status {
+      background: var(--secondary);
+      color: #fff;
+    }
+
+    .tab-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .platform-detail-panel {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border-left: 2px solid var(--secondary);
+      background: var(--bg-color);
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    .detail-item {
+      font-size: 0.82rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+    }
+
+    .detail-item::before {
+      content: '✓';
+      color: var(--color-success);
+      font-weight: bold;
+    }
+
+    /* 🏷️ 定價與計費週期切換 */
+    .pricing-section {
+      padding: 6.5rem 8%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* 仿 Cube 的 Billing Toggle 開關 */
+    .toggle-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .toggle-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .toggle-label.active {
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+    }
+
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border-color);
+      border: 1px solid var(--border-color);
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--primary);
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .discount-badge {
+      background: var(--color-success);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 2px;
+      margin-left: 0.25rem;
+      font-weight: bold;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 3rem;
+    }
+
+    .pricing-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      padding: 4rem 2.5rem;
+      text-align: center;
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .pricing-card:hover {
+      box-shadow: 0 20px 50px rgba(46, 64, 87, 0.05);
+    }
+
+    .pricing-card.premium {
+      border-color: var(--secondary);
+      background: var(--card-bg);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--secondary);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 0.35rem 1rem;
+      font-weight: bold;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border-radius: 20px;
+    }
+
+    .plan-name {
+      font-family: var(--font-title);
+      font-size: 1.45rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .plan-price-row {
+      margin: 1.5rem 0;
+    }
+
+    .plan-price {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .plan-period {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .plan-features {
+      list-style: none;
+      margin-bottom: 3rem;
+      text-align: left;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 1.5rem;
+    }
+
+    .plan-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .plan-features li::before {
+      content: '✓';
+      color: var(--color-success);
+      font-weight: bold;
+    }
+
+    .plan-features li.disabled {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+
+    .plan-features li.disabled::before {
+      content: '✕';
+      color: var(--text-muted);
+    }
+
+    /* 頁尾 */
+    .footer {
+      border-top: 1px solid var(--border-color);
+      padding: 4rem 8%;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+      .navbar { padding: 1.2rem 5%; }
+      .hero-title { font-size: 2.5rem; }
+      .roadmap-container { grid-template-columns: 1fr; gap: 3rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 發光漸層背景 -->
+  <div class="glow-orb-bg"></div>
+
+  <!-- 頂部導覽列 -->
+  <nav class="navbar">
+    <a href="#" class="logo">
+      <span>🏯</span> JehaCrop
+    </a>
+    <div class="nav-links">
+      <a href="#features" class="nav-link">產品特色</a>
+      <a href="#roadmap" class="nav-link">多平台規劃</a>
+      <a href="#pricing" class="nav-link">定價訂閱</a>
+      <button class="nav-link" id="theme-toggle" style="background:none;border:none;cursor:pointer;font-size:1.05rem;">🌗</button>
+      <a href="/app" class="btn">進入總裁辦公室 ⚡</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero-section">
+    <div class="hero-tag">和風侘寂 × 你。即是總裁</div>
+    <h1 class="hero-title">你。即是總裁。</h1>
+    <p class="hero-subtitle">
+      JehaCrop (台語：正好) 專為微型創業者打造。整合 Wabi-Sabi 禪意專注介面、專案簡報前置引導與 Fable / OWASP 雙重防禦審查，讓您用最低的算力，指揮井然有序的虛擬專家小組。
+    </p>
+    <div class="hero-actions">
+      <a href="/app" class="btn">派遣 AI 團隊執行 ⚡</a>
+      <a href="#roadmap" class="btn btn-outline">探索未來多平台規劃</a>
+    </div>
+  </header>
+
+  <!-- 合作夥伴 Logo 牆 -->
+  <section class="partner-section">
+    <div class="partner-title">總裁們的推薦信任協同</div>
+    <div class="partner-grid">
+      <div class="partner-logo">🍵 南山茶庵</div>
+      <div class="partner-logo">🪵 侘寂設計</div>
+      <div class="partner-logo">🚲 家河共享</div>
+      <div class="partner-logo">🎋 竹細工舍</div>
+    </div>
+  </section>
+
+  <!-- 特色網格 -->
+  <section class="features-section" id="features">
+    <h2 class="section-title">五大核心特色</h2>
+    <div class="features-grid">
+      
+      <div class="feature-card">
+        <div class="feature-icon">📁</div>
+        <h3 class="feature-name">專案全局簡報 (project_brief)</h3>
+        <p class="feature-desc">系統立案時，協調官自動整理全案大綱，做為所有後續步驟 AI 員工的置頂憲法，確保跨領域開發方向不跑偏。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎓</div>
+        <h3 class="feature-name">總裁記憶偏好 (user.md)</h3>
+        <p class="feature-desc">永久記憶您的寫作語氣、美感習慣及品質紀律。所有招募的 AI 員工都會自動對齊此習慣。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3 class="feature-name">雙重盲測審核 (Security & Fable)</h3>
+        <p class="feature-desc">整合 Fable 紀律審核與 OWASP Top 10 資安漏洞掃描。嚴厲攔截 SQL Injection、XSS，不合規強制退回重做。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-name">彈性運算池 (Scale to Zero)</h3>
+        <p class="feature-desc">模擬 Serverless 機制，員工閒置時自動降為 0，確保寶貴的 LLM 算力預算被百分之百高效利用。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 📱 多平台未來規劃互動版塊 -->
+  <section class="roadmap-section" id="roadmap">
+    <h2 class="section-title">未來多平台演進實踐</h2>
+    <div class="roadmap-container">
+      
+      <!-- 左側 3D Mockup 預覽 -->
+      <div class="mockup-container">
+        <img src="solocorp_app_mockup.jpg" alt="JehaCrop App Mockup" class="mockup-img">
+      </div>
+
+      <!-- 右側 Tabs 互動 -->
+      <div class="platform-tabs">
+        
+        <button class="platform-tab-btn active" data-platform="ios-android">
+          <div class="tab-title-row">
+            <span>📱 iOS / Android 行動原生版</span>
+            <span class="tab-status">二階段規劃</span>
+          </div>
+          <span class="tab-desc">使用 Capacitor 進行原生打包，將運算池縮小至精簡膠囊徽章，讓總裁在手機上掌控一切。</span>
+        </button>
+
+        <button class="platform-tab-btn" data-platform="desktop">
+          <div class="tab-title-row">
+            <span>🖥️ Desktop 桌面 Client 版</span>
+            <span class="tab-status">三階段計畫</span>
+          </div>
+          <span class="tab-desc">本機 Client 應用，內建 Sandbox 沙盒即時運行預覽產出代碼，直接推送 Git 儲存庫。</span>
+        </button>
+
+        <button class="platform-tab-btn" data-platform="voice">
+          <div class="tab-title-row">
+            <span>🎙️ 藍芽語音派遣端</span>
+            <span class="tab-status">預研中</span>
+          </div>
+          <span class="tab-desc">出門在外，透過藍芽耳機直接語音命令 AI 立案，簡報自動產出並啟動協調開發。</span>
+        </button>
+
+        <!-- 實踐細節面板 -->
+        <div class="platform-detail-panel" id="detail-panel">
+          <div class="detail-item">**行動膠囊徽章**：在小螢幕上將運算池員工自動精簡為一行精緻圓角丸徽章，釋放閱讀空間。</div>
+          <div class="detail-item">**FaceID 辨識登入**：支援 TouchID/FaceID 生物特徵，瞬時進入總裁辦公室。</div>
+          <div class="detail-item">**原生 APNs 通知推送**：員工遭遇退回修正或代碼出現 SQL 漏洞時，即時發送推送。</div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 訂閱價格 -->
+  <section class="pricing-section" id="pricing">
+    <h2 class="section-title">禪意訂閱方案</h2>
+    
+    <!-- 計費週期切換 -->
+    <div class="toggle-container">
+      <span class="toggle-label active" id="label-monthly">按月付費</span>
+      <label class="switch">
+        <input type="checkbox" id="billing-toggle">
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label" id="label-yearly">按年付費 <span class="discount-badge">年付8折</span></span>
+    </div>
+
+    <div class="pricing-grid">
+      
+      <!-- 起步版 -->
+      <div class="pricing-card">
+        <div>
+          <div class="plan-name">起步版 (Free)</div>
+          <p style="font-size:0.8rem;color:var(--text-muted)">適合探索與概念驗證</p>
+          <div class="plan-price-row">
+            <span class="plan-price">$0</span>
+            <span class="plan-period">/ 永久免費</span>
+          </div>
+          <ul class="plan-features">
+            <li>**預設使用市面上免費 API (次數受限)**</li>
+            <li>✓ 3 個內建基本 AI 員工</li>
+            <li>✓ 1 個預設團隊工作流</li>
+            <li>✓ 本地 outputs 文件寫檔歸檔</li>
+            <li class="disabled">✕ 自行串接自訂 API 金鑰 (算力自理)</li>
+            <li class="disabled">✕ Fable + 資安雙重漏洞盲測掃描</li>
+          </ul>
+        </div>
+        <a href="/app" class="btn btn-outline" style="margin-top:1.5rem">開始免費使用</a>
+      </div>
+
+      <!-- 專業版 -->
+      <div class="pricing-card premium">
+        <div class="pricing-badge">最受歡迎</div>
+        <div>
+          <div class="plan-name">專業版 (Pro)</div>
+          <p style="font-size:0.8rem;color:var(--text-muted)">解鎖無限算力與雙重安全檢查</p>
+          <div class="plan-price-row">
+            <span class="plan-price" id="pro-price">$29</span>
+            <span class="plan-period" id="pro-period">/ 每月</span>
+          </div>
+          <ul class="plan-features">
+            <li>**提供自行串接 API 金鑰 (金鑰物理安全儲存)**</li>
+            <li>✓ 12 個內建專業 AI 員工 (包含 paid-media)</li>
+            <li>✓ 無限制自選自訂大腦 (OpenAI / Gemini)</li>
+            <li>✓ **Fable + OWASP 雙重防禦安全審查**</li>
+            <li>✓ Scale to Zero 算力預算自動回收池</li>
+          </ul>
+        </div>
+        <a href="/app" class="btn" style="margin-top:1.5rem">立即派遣小組 ⚡</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 JehaCrop Inc. 禪風極簡多代理人平台。物理隔離、雙重資安保固。</p>
+  </footer>
+
+  <script>
+    // 1. 深色模式切換
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      localStorage.setItem('intro_theme', nextTheme);
+    });
+
+    const savedTheme = localStorage.getItem('intro_theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // 2. 多平台未來規劃互動 Tabs
+    const tabBtns = document.querySelectorAll('.platform-tab-btn');
+    const detailPanel = document.getElementById('detail-panel');
+
+    const details = {
+      'ios-android': [
+        '**行動膠囊徽章**：在小螢幕上將運算池員工自動精簡為一行精緻圓角丸徽章，釋放閱讀空間。',
+        '**FaceID 辨識登入**：支援 TouchID/FaceID 生物特徵，瞬時進入總裁辦公室。',
+        '**原生 APNs 通知推送**：員工遭遇退回修正或代碼出現 SQL 漏洞時，即時發送推送。'
+      ],
+      'desktop': [
+        '**整合 WebContainers 原型沙盒**：直接在本機模擬沙盒中運行並即時預覽產出的 React UI 與網頁。',
+        '**自動 Git 儲存庫同步**：AI 寫入的程式碼直接 commit 並 push 至指定的 Github 儲存庫。',
+        '**離線快取儲存**：在無網路環境下，可閱讀快取的 project_brief.md 與歷史報告。'
+      ],
+      'voice': [
+        '**藍芽耳機一鍵喚醒**：出門在外，透過藍芽耳機按鈕即可直接喚醒專案協調官。',
+        '**口述派遣立案**：無需打字，用語音描述點子，AI 自動轉譯並在 Step 0 生成簡報。',
+        '**語音進度回報**：AI 完成任務後，可以語音摘要播報 Fable 與資安通過的狀況。'
+      ]
+    };
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const platform = btn.getAttribute('data-platform');
+        const items = details[platform] || [];
+        
+        detailPanel.style.opacity = 0;
+        setTimeout(() => {
+          detailPanel.innerHTML = items.map(text => `<div class="detail-item">${text}</div>`).join('');
+          detailPanel.style.opacity = 1;
+        }, 200);
+      });
+    });
+
+    // 3. Billing Toggle 計費切換與價格動態更新
+    const billingToggle = document.getElementById('billing-toggle');
+    const labelMonthly = document.getElementById('label-monthly');
+    const labelYearly = document.getElementById('label-yearly');
+    const proPrice = document.getElementById('pro-price');
+    const proPeriod = document.getElementById('pro-period');
+
+    billingToggle.addEventListener('change', () => {
+      if (billingToggle.checked) {
+        // 年繳模式
+        labelYearly.classList.add('active');
+        labelMonthly.classList.remove('active');
+        proPrice.textContent = '$23';
+        proPeriod.textContent = '/ 月 (按年計費)';
+      } else {
+        // 月繳模式
+        labelMonthly.classList.add('active');
+        labelYearly.classList.remove('active');
+        proPrice.textContent = '$29';
+        proPeriod.textContent = '/ 每月';
+      }
+      
+      // 價格變更微放大動畫
+      proPrice.style.transform = 'scale(1.1)';
+      setTimeout(() => {
+        proPrice.style.transform = 'scale(1)';
+      }, 150);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "agents_path": ".agents/skills",
+  "output_path": "mvp_output",
+  "flow": [
+    "rapid-prototyper",
+    "frontend-developer",
+    "backend-architect",
+    "growth-hacker",
+    "reality-checker"
+  ]
+}
