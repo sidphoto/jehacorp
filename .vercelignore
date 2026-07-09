@@ -1,0 +1,13 @@
+# 不需要上傳到 Vercel 的檔案
+data/
+mvp_output/
+src/
+__pycache__/
+*.pyc
+*.py.bak
+.DS_Store
+server.py
+scratch/
+solocorp_app_mockup.jpg
+wish-pool/
+*.log
