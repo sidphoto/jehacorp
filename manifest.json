@@ -1,0 +1,21 @@
+{
+  "name": "JehaCrop 一人公司協同 App",
+  "short_name": "JehaCrop",
+  "description": "日式極簡禪意美學之多代理人自建協同開發系統",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#faf9f6",
+  "theme_color": "#415058",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/svg?seed=jeha",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/svg?seed=jeha",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

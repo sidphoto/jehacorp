@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>JehaCrop 一人公司多代理人團隊協同 App</title>
   <meta name="description" content="日式極簡禪意美學與 Fable 紀律審核之多代理人自建協同開發系統">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#415058">
   
   <!-- Google Fonts - 載入 Noto Serif TC (明體/禪意) 與 Noto Sans TC (黑體/簡約) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1539,8 +1541,36 @@
         </div>
         
         <!-- Pipeline 佇列 -->
-        <div class="card" id="pipeline-card" style="display:none;">
+        <div class="card" id="pipeline-card" style="display:none; margin-bottom: 1.25rem;">
           <h2 class="card-title">📋 Pipeline 佇列與 Fable 審查</h2>
+          
+          <!-- 🛠️ 派遣進度可視化條與打勾清單 -->
+          <div id="dispatch-progress-container" style="background:rgba(65,80,88,0.02); border:1px solid var(--card-border); border-radius:2px; padding:1rem; margin-bottom:1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">派遣小組組建進度</span>
+              <span style="font-size:0.85rem; font-weight:bold; color:var(--accent);" id="dispatch-progress-percent">0%</span>
+            </div>
+            <!-- 進度條外框 -->
+            <div style="background:#e4ded3; border-radius:4px; height:8px; width:100%; overflow:hidden; margin-bottom:0.75rem;">
+              <div id="dispatch-progress-bar" style="background:var(--primary); height:100%; width:0%; transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);"></div>
+            </div>
+            <!-- 階段打勾清單 -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.5rem;">
+              <div class="progress-step-item" id="prog-step-1" style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem;">
+                <span class="step-check-icon">⏳</span> <span>1. 規劃專案任務</span>
+              </div>
+              <div class="progress-step-item" id="prog-step-2" style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem;">
+                <span class="step-check-icon">⏳</span> <span>2. 召集 AI 虛擬員工</span>
+              </div>
+              <div class="progress-step-item" id="prog-step-3" style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem;">
+                <span class="step-check-icon">⏳</span> <span>3. 配置運算資源</span>
+              </div>
+              <div class="progress-step-item" id="prog-step-4" style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem;">
+                <span class="step-check-icon">⏳</span> <span>4. 派遣小組協同開發</span>
+              </div>
+            </div>
+          </div>
+
           <div class="pipeline-container" id="pipeline-container">
             <!-- 動態渲染各步驟的處理與退回狀態 -->
           </div>
@@ -1557,10 +1587,57 @@
       </div>
 
       <!-- Fable Event Logs (終端日誌) -->
-      <div class="terminal-container" id="terminal-card" style="display:none;">
+      <div class="terminal-container" id="terminal-card" style="display:none; margin-bottom: 1.25rem;">
         <div class="terminal-title">System Event Logs (Fable Audit Stream)</div>
         <div id="terminal-content">
           <!-- 日誌流 -->
+        </div>
+      </div>
+
+      <!-- ⏱️ 自動定時派工設定 (Scheduler) -->
+      <div class="card" id="cron-container" style="margin-bottom: 1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border); padding-bottom:0.5rem; margin-bottom:0.75rem;">
+          <h2 class="card-title" style="margin:0;">⏱️ 自動定時派工設定 (Scheduler)</h2>
+          <button class="btn" style="width:auto; padding:0.25rem 0.75rem; font-size:0.75rem; border-radius:2px;" id="save-cron-btn">💾 儲存排程</button>
+        </div>
+        
+        <!-- 極簡 Switch 開關 -->
+        <label class="switch-container" style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+          <span class="switch-label" style="font-size:0.82rem; font-weight:600;">開啟自動定時派遣任務</span>
+          <input type="checkbox" id="setting-cron-enabled" class="switch-checkbox">
+          <span class="switch-toggle"></span>
+        </label>
+        
+        <div id="cron-details-form" style="display:none; border-top:1px dashed var(--card-border); padding-top:0.75rem; margin-top:0.5rem;">
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label class="form-label" for="setting-cron-schedule" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">派遣時間與間隔頻率</label>
+            <select class="form-select" id="setting-cron-schedule" style="font-size:0.8rem; width:100%;">
+              <option value="every_60s">每隔 60 秒測試 (推薦開發測試使用)</option>
+              <option value="daily_0900">每日早上 09:00</option>
+              <option value="weekly_monday_0900">每週一早上 09:00</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label class="form-label" for="setting-cron-idea" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">預設派遣點子 (Idea)</label>
+            <input type="text" id="setting-cron-idea" class="form-input" placeholder="例如：機車租賃競品分析日報" style="font-size:0.8rem; width:100%;">
+          </div>
+          <div class="form-group" style="margin-bottom:0.5rem;">
+            <label class="form-label" for="setting-cron-workflow" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">預設執行小組工作流</label>
+            <select class="form-select" id="setting-cron-workflow" style="font-size:0.8rem; width:100%; margin-bottom:0;">
+              <!-- 動態載入 -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🧰 我的工具箱 (Saved Tools) -->
+      <div class="card" id="saved-tools-card" style="margin-bottom: 1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border); padding-bottom:0.5rem; margin-bottom:0.75rem;">
+          <h2 class="card-title" style="margin:0;">🧰 我的工具箱 (Saved Tools)</h2>
+          <span style="font-size:0.7rem; color:var(--text-muted);" id="saved-tools-count">已收藏 0 個沙盒工具</span>
+        </div>
+        <div id="saved-tools-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <!-- 動態載入收藏工具列表 -->
         </div>
       </div>
     </section>
@@ -1618,6 +1695,7 @@
       </div>
       <div class="results-drawer-actions">
         <button class="btn btn-secondary" style="width:auto;padding:0.3rem 0.65rem;font-size:0.75rem;border-radius:2px;display:none;background:var(--secondary);color:#fff;border-color:var(--secondary);" id="render-sandbox-btn">🛠️ 運行工具</button>
+        <button class="btn btn-secondary" style="width:auto;padding:0.3rem 0.65rem;font-size:0.75rem;border-radius:2px;display:none;background:var(--color-success);color:#fff;border-color:var(--color-success);" id="save-sandbox-tool-btn">💾 收藏工具</button>
         <button class="btn btn-secondary" style="width:auto;padding:0.3rem 0.65rem;font-size:0.75rem;border-radius:2px;" id="download-report-btn">📥 匯出</button>
         <button class="results-drawer-close" id="results-drawer-close" title="關閉文件">✕</button>
       </div>
@@ -1770,40 +1848,7 @@
         </div>
       </div>
 
-      <!-- ⏱️ 區塊 4：【獨立獨立】自動定時派工設定 -->
-      <div class="settings-section-card cron-highlight-card" id="cron-container">
-        <div class="settings-section-title" style="border-bottom-color: var(--accent);">
-          <span>⏱️ 自動定時派工設定 (Scheduler)</span>
-        </div>
-        
-        <!-- 極簡 Switch 開關 -->
-        <label class="switch-container" style="margin-bottom: 1rem;">
-          <span class="switch-label" style="font-size:0.82rem;">開啟自動定時派遣任務</span>
-          <input type="checkbox" id="setting-cron-enabled" class="switch-checkbox">
-          <span class="switch-toggle"></span>
-        </label>
-        
-        <div id="cron-details-form" style="display:none; border-top:1px dashed var(--card-border); padding-top:1rem; margin-top:0.5rem;">
-          <div class="form-group" style="margin-bottom:0.85rem;">
-            <label class="form-label" for="setting-cron-schedule" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">派遣時間與間隔頻率</label>
-            <select class="form-select" id="setting-cron-schedule" style="font-size:0.8rem; width:100%;">
-              <option value="every_60s">每隔 60 秒測試 (推薦開發測試使用)</option>
-              <option value="daily_0900">每日早上 09:00</option>
-              <option value="weekly_monday_0900">每週一早上 09:00</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:0.85rem;">
-            <label class="form-label" for="setting-cron-idea" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">預設派遣點子 (Idea)</label>
-            <input type="text" id="setting-cron-idea" class="form-input" placeholder="例如：機車租賃競品分析日報" style="font-size:0.8rem; width:100%;">
-          </div>
-          <div class="form-group" style="margin-bottom:0.5rem;">
-            <label class="form-label" for="setting-cron-workflow" style="font-size:0.78rem; font-weight:bold; display:block; margin-bottom:0.3rem;">預設執行小組工作流</label>
-            <select class="form-select" id="setting-cron-workflow" style="font-size:0.8rem; width:100%; margin-bottom:0;">
-              <!-- 動態載入 -->
-            </select>
-          </div>
-        </div>
-      </div>
+
     </div>
   </div>
 
@@ -1962,6 +2007,29 @@
   <div class="toast" id="toast-message">提示訊息</div>
 
   <script>
+    // 內建虛擬員工名冊備份 (Fallback 專用)
+    const BUILTIN_AGENTS = [
+      {"id": "rapid-prototyper", "name": "快速原型製作 (Rapid Prototyper)", "emoji": "⚡", "description": "快速原型製作 - 專精於超快速概念驗證 (PoC) 與最小可行產品 (MVP) 開發。", "llm_source": "gpt-4o-mini", "category": "development", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=rapid"},
+      {"id": "frontend-developer", "name": "前端開發工程師 (Frontend Developer)", "emoji": "🎨", "description": "前端開發工程師 - 專精於現代網頁技術、React 應用建置、使用者介面與效能優化。", "llm_source": "gpt-4o", "category": "development", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=frontend"},
+      {"id": "backend-architect", "name": "後端架構師 (Backend Architect)", "emoji": "🏗️", "description": "後端架構師 - 專精於系統架構設計、API 設計與資料庫優化。", "llm_source": "gpt-4o", "category": "development", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=backend"},
+      {"id": "reality-checker", "name": "現實檢驗官 (Reality Checker)", "emoji": "🔍", "description": "現實檢驗 - Final integration testing and realistic deployment readiness assessment", "llm_source": "gpt-4o", "category": "development", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=reality"},
+      {"id": "paid-media-auditor", "name": "付費媒體稽核師 (Paid Media Auditor)", "emoji": "📋", "description": "付費媒體稽核師 - 專精於廣告帳戶全面評估、成效診斷與預算分配優化。", "llm_source": "gpt-4o-mini", "category": "paid-media", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=media"},
+      {"id": "tracking-measurement-specialist", "name": "追蹤與成效衡量專家 (Tracking Specialist)", "emoji": "📡", "description": "追蹤與成效衡量專家 - 專精於驗證轉換追蹤準確性、代碼部署及數據一致性檢查。", "llm_source": "gpt-4o", "category": "paid-media", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=tracking"},
+      {"id": "ppc-campaign-strategist", "name": "PPC 廣告活動策略師 (PPC Campaign Strategist)", "emoji": "💰", "description": "PPC 廣告活動策略師 - 專精於廣告帳戶架構重建、關鍵字比對模式選擇與預算分配。", "llm_source": "gpt-4o-mini", "category": "paid-media", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=ppc"},
+      {"id": "search-query-analyst", "name": "搜尋字詞分析師 (Search Query Analyst)", "emoji": "🔍", "description": "搜尋字詞分析師 - 專精於搜尋字詞報告分析、否定關鍵字篩選與無效花費清理。", "llm_source": "gpt-4o-mini", "category": "paid-media", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=search"},
+      {"id": "ad-creative-strategist", "name": "廣告創意策略師 (Ad Creative Strategist)", "emoji": "✍️", "description": "廣告創意策略師 - 專精於撰寫高 CTR 廣告文案、自訂額外資訊設定與視覺創意規劃。", "llm_source": "gpt-4o-mini", "category": "marketing", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=creative"},
+      {"id": "analytics-reporter", "name": "數據分析與回報專家 (Analytics Reporter)", "emoji": "📊", "description": "數據分析與回報專家 - 專精於建立 Looker Studio 報表、資料整合與每週/每月成效報告寫作。", "llm_source": "gpt-4o-mini", "category": "marketing", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=analytics"},
+      {"id": "growth-hacker", "name": "成長駭客 (Growth Hacker)", "emoji": "🚀", "description": "成長駭客 - 專精於快速用戶獲取、轉化漏斗優化與數據驅動的增長策略。", "llm_source": "gpt-4o-mini", "category": "marketing", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=growth"},
+      {"id": "marketing-content-creator", "name": "專業行銷小編 (Marketing Content Creator)", "emoji": "📱", "description": "專業行銷文案小編與內容創作技能。包含多平台貼文撰寫、行銷策略規劃、文案架構設計與 SEO 優化。", "llm_source": "gemini-1.5-flash", "category": "marketing", "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=marketing"},
+    ];
+
+    // 內建工作流團隊備份 (Fallback 專用)
+    const BUILTIN_WORKFLOWS = [
+      {"id": "mvp", "name": "🚀 新創 MVP 開發團隊", "description": "快速將點子轉化為原型產品，包含前後端架構設計、成長推廣方案及品質現實檢驗。", "flow": ["rapid-prototyper", "frontend-developer", "backend-architect", "growth-hacker", "reality-checker"]},
+      {"id": "paid_media", "name": "💰 付費廣告特攻隊", "description": "專門負責廣告帳戶的全面稽核、轉換追蹤驗證、架構調整與高轉化廣告創意更新。", "flow": ["paid-media-auditor", "tracking-measurement-specialist", "ppc-campaign-strategist", "search-query-analyst", "ad-creative-strategist", "analytics-reporter"]},
+      {"id": "social_marketing", "name": "📱 社群內容行銷團隊", "description": "打造人氣品牌故事、多管道社群行銷文案自動規劃與發布，適合自媒體與小編團隊。", "flow": ["marketing-content-creator", "ad-creative-strategist", "growth-hacker", "analytics-reporter"]},
+    ];
+
     // 狀態管理
     let currentUser = null;
     let BACKEND_URL = localStorage.getItem('jeha_backend_url') || '';
@@ -2082,13 +2150,23 @@
     // 初始化應用程式資料
     async function initializeAppData() {
       try {
-        populateCronWorkflows();
+        // 先並行載入核心的員工和工作流數據
         await Promise.all([
           loadAgents(),
-          loadWorkflows(),
+          loadWorkflows()
+        ]);
+
+        // 此時 agentsList 與 workflowsList 必不為空，此時填充定時工作流選單
+        populateCronWorkflows();
+
+        // 接著加載歷史紀錄與系統設定
+        await Promise.all([
           loadHistory(),
           loadSettings()
         ]);
+        
+        // 渲染已收藏的工具箱
+        renderSavedTools();
         
         // 🔄 嘗試載入並還原 Google Drive 同步授權 (方案 C)
         const savedToken = localStorage.getItem('gdrive_access_token');
@@ -2104,9 +2182,20 @@
       }
     }
 
-    // 載入代理人庫 (支援 RWD 分類篩選)
+    // 載入代理人庫 (支援 RWD 分類篩選，且提供 API 斷線 / 空 KV 健全 Fallback)
     async function loadAgents(filterCategory = 'all') {
-      agentsList = await apiRequest('/api/agents');
+      try {
+        const remote = await apiRequest('/api/agents');
+        if (remote && Array.isArray(remote) && remote.length > 0) {
+          agentsList = remote;
+        } else {
+          throw new Error('後端返回的 AI 員工資料為空。');
+        }
+      } catch (e) {
+        console.warn("無法自後端載入代理人，啟用本機 Fallback 策略：", e);
+        const custom = JSON.parse(localStorage.getItem('custom_agents') || '[]');
+        agentsList = [...BUILTIN_AGENTS, ...custom];
+      }
       
       let filtered = agentsList;
       if (filterCategory !== 'all') {
@@ -2126,17 +2215,17 @@
             <div class="staff-avatar" style="background:none;border:none;box-shadow:none;">
               <img src="${imgUrl}" class="staff-avatar-img">
             </div>
-          <div class="staff-info">
-            <div class="staff-name">${ag.name}</div>
-            <div class="staff-desc">${ag.description || '暫無職務描述。'}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.35rem;display:flex;align-items:center;gap:0.25rem;">
-              <span>🤖</span> <span>${ag.llm_source || 'gpt-4o-mini'}</span>
-              <span style="opacity:0.35;">|</span>
-              <span>🏷️</span> <span>${translateCategory(ag.category)}</span>
+            <div class="staff-info">
+              <div class="staff-name">${ag.name}</div>
+              <div class="staff-desc">${ag.description || '暫無職務描述。'}</div>
+              <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.35rem;display:flex;align-items:center;gap:0.25rem;">
+                <span>🤖</span> <span>${ag.llm_source || 'gpt-4o-mini'}</span>
+                <span style="opacity:0.35;">|</span>
+                <span>🏷️</span> <span>${translateCategory(ag.category)}</span>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
       }).join('');
     }
 
@@ -2150,9 +2239,20 @@
       return map[cat] || cat || '總裁自訂';
     }
 
-    // 載入工作流
+    // 載入工作流 (具備 Fallback 機制)
     async function loadWorkflows() {
-      workflowsList = await apiRequest('/api/workflows');
+      try {
+        const remote = await apiRequest('/api/workflows');
+        if (remote && Array.isArray(remote) && remote.length > 0) {
+          workflowsList = remote;
+        } else {
+          throw new Error('後端返回的工作流資料為空。');
+        }
+      } catch (e) {
+        console.warn("無法自後端載入工作流，啟用本機 Fallback 策略：", e);
+        const custom = JSON.parse(localStorage.getItem('custom_workflows') || '[]');
+        workflowsList = [...BUILTIN_WORKFLOWS, ...custom];
+      }
       
       const select = document.getElementById('workflow-select');
       select.innerHTML = workflowsList.map(wf => `
@@ -2717,6 +2817,9 @@
       terminalCard.style.display = 'block';
       resultsDrawer.classList.remove('open');
       
+      // 重設組建派遣進度條
+      updateDispatchProgress(0, 0);
+      
       // 清空或追加日誌
       if (!feedback) {
         document.getElementById('terminal-content').innerHTML = '';
@@ -2824,7 +2927,12 @@
           if (pollingIntervalId) clearInterval(pollingIntervalId);
         } else if (data.status === 'thinking') {
           updateTaskState(data.agent_id, { status: 'thinking', progress: 30, retryCount: data.retry_count, fableFeedback: data.fable_feedback || '' });
-          if (data.agent_id !== 'system-coordinator') setWorkerStatus(data.agent_id, 'busy', data.llm_source);
+          if (data.agent_id !== 'system-coordinator') {
+            setWorkerStatus(data.agent_id, 'busy', data.llm_source);
+            updateDispatchProgress(50, 2); // 招集 AI 員工完成
+          } else {
+            updateDispatchProgress(25, 1); // 規劃任務完成
+          }
           if (data.retry_count === 0) {
             addTerminalLog(`[任務派遣] 派遣員工 【${data.agent_name}】 撰寫初稿中...`, 'info');
           } else {
@@ -2835,11 +2943,13 @@
           addTerminalLog(`[會議討論] 💬 ${data.agent_name} 的會議對齊對談完成，已取得共識。`, 'info');
         } else if (data.status === 'writing') {
           updateTaskState(data.agent_id, { status: 'writing', progress: 60 });
+          updateDispatchProgress(75, 3); // 開啟資源，員工進行開發與 Fable review
         } else if (data.status === 'fable_auditing') {
           updateTaskState(data.agent_id, { status: 'fable_auditing', progress: 85 });
           setWorkerStatus(data.agent_id, 'idle');
           addAuditorWorker('busy');
           addTerminalLog(`[初稿完成] ${data.agent_name} 初稿產出，移交執行總裁 (CEO) 進行 Code Review 監督...`, 'warning');
+          updateDispatchProgress(75, 3);
         } else if (data.status === 'fable_rejected') {
           updateTaskState(data.agent_id, { status: 'fable_rejected', progress: 0, retryCount: data.retry_count, fableFeedback: data.fable_feedback });
           setAuditorStatus('idle');
@@ -2847,6 +2957,7 @@
         } else if (data.status === 'security_auditing') {
           updateTaskState(data.agent_id, { status: 'security_auditing', progress: 92 });
           addTerminalLog(`[資安掃描] 🛡️ 總裁進行 OWASP Top 10 資安合規漏洞檢測審查中...`, 'warning');
+          updateDispatchProgress(75, 3);
         } else if (data.status === 'security_rejected') {
           updateTaskState(data.agent_id, { status: 'security_rejected', progress: 0, retryCount: data.retry_count, fableFeedback: data.security_feedback });
           addTerminalLog(`[資安退回] ❌ 總裁資安 Review 拒絕！偵測到高危漏洞。原因：${data.security_feedback}`, 'error');
@@ -2856,6 +2967,7 @@
           addTerminalLog(`[Review 通過] ✅ 總裁雙重 Review 順利通過！`, 'success');
           if (data.step === 0 || data.step === 1) viewReport(data.agent_id, data.agent_name, data.emoji, data.report_file);
         } else if (data.status === 'finished') {
+          updateDispatchProgress(100, 4); // 派遣小組協同開發結案
           addTerminalLog(`[協同結束] 👑 執行總裁 (CEO) 已將成果整理呈交，等待董事長最終驗收。`, 'success');
           showToast("交付成果已呈交，請進行最終驗收！");
           const acceptanceCard = document.getElementById('acceptance-card');
@@ -3092,12 +3204,15 @@
           }
         }
         
+        const saveSandboxToolBtn = document.getElementById('save-sandbox-tool-btn');
         if (extractedHtml) {
           currentReportHtmlCode = extractedHtml;
           renderSandboxBtn.style.display = 'inline-block';
+          if (saveSandboxToolBtn) saveSandboxToolBtn.style.display = 'inline-block';
         } else {
           currentReportHtmlCode = "";
           renderSandboxBtn.style.display = 'none';
+          if (saveSandboxToolBtn) saveSandboxToolBtn.style.display = 'none';
         }
         
         // 載入完成後，平滑拉起推拉門 (Fusuma drawer)
@@ -3132,11 +3247,176 @@
       }
     });
 
+    // 💾 收藏沙盒工具事件
+    const saveSandboxToolBtn = document.getElementById('save-sandbox-tool-btn');
+    if (saveSandboxToolBtn) {
+      saveSandboxToolBtn.addEventListener('click', () => {
+        if (!currentReportHtmlCode) return;
+        
+        let defaultName = "自訂沙盒工具";
+        const detailTitle = document.getElementById('drawer-title');
+        if (detailTitle) {
+          // 清理可能包含的 HTML 與 Emoji
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = detailTitle.innerHTML;
+          defaultName = tempDiv.textContent.replace(/📄|⚡|👁️|在新分頁預覽|⬇️|下載/g, "").trim() + " 工具";
+        }
+        
+        const toolName = prompt("請輸入收藏的工具名稱：", defaultName);
+        if (toolName === null) return; // 使用者按取消
+        const name = toolName.trim() || defaultName;
+
+        let customTools = JSON.parse(localStorage.getItem('custom_tools') || '[]');
+        
+        // 檢查是否重複收藏
+        const exists = customTools.some(t => t.code === currentReportHtmlCode);
+        if (exists) {
+          showToast("此工具已在您的工具箱中！", true);
+          return;
+        }
+
+        const newTool = {
+          id: 'tool-' + Date.now(),
+          name: name,
+          code: currentReportHtmlCode,
+          created_at: new Date().toLocaleString('zh-TW', { hour12: false })
+        };
+
+        customTools.push(newTool);
+        localStorage.setItem('custom_tools', JSON.stringify(customTools));
+        showToast(`已成功將「${name}」收藏至我的工具箱！`);
+        
+        // 觸發雲端自動背景備份 (方案 C) 與重新渲染工具箱
+        triggerAutoSync();
+        renderSavedTools();
+      });
+    }
+
+    // 渲染工具箱
+    function renderSavedTools() {
+      const container = document.getElementById('saved-tools-list');
+      const countLabel = document.getElementById('saved-tools-count');
+      if (!container) return;
+
+      const customTools = JSON.parse(localStorage.getItem('custom_tools') || '[]');
+      if (countLabel) countLabel.textContent = `已收藏 ${customTools.length} 個沙盒工具`;
+
+      if (customTools.length === 0) {
+        container.innerHTML = `<p style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:1.5rem 0;line-height:1.5;">目前尚未收藏任何工具。當 Pipeline 產出含有 HTML/JS 的成果時，您可以在成果抽屜點擊「💾 收藏工具」將其資產化！</p>`;
+        return;
+      }
+
+      container.innerHTML = customTools.map(t => {
+        return `
+          <div class="project-file-item" style="padding: 0.6rem 0.75rem; border: 1px solid var(--card-border); border-radius: 2px; margin-bottom: 0.25rem; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.4rem; min-width:0; flex:1; cursor:pointer;" onclick="openSavedTool('${t.id}')">
+              <span>🧰</span>
+              <span style="font-weight:600; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; font-size:0.82rem; color:var(--primary);">${t.name}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+              <span style="font-size:0.65rem; color:var(--text-muted);">${t.created_at}</span>
+              <button onclick="event.stopPropagation(); deleteSavedTool('${t.id}')" style="background:transparent; border:none; color:var(--danger); font-size:0.85rem; cursor:pointer; padding: 0.1rem 0.25rem;" title="刪除工具">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.openSavedTool = function(toolId) {
+      const customTools = JSON.parse(localStorage.getItem('custom_tools') || '[]');
+      const tool = customTools.find(t => t.id === toolId);
+      if (!tool) return;
+
+      currentReportHtmlCode = tool.code;
+      
+      const detailTitle = document.getElementById('drawer-title');
+      const detailBody = document.getElementById('markdown-content');
+      const sandboxContainer = document.getElementById('sandbox-container');
+      const sandboxIframe = document.getElementById('sandbox-iframe');
+      
+      document.getElementById('drawer-avatar').textContent = '🧰';
+      detailTitle.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <span>🧰 ${tool.name}</span>
+          <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+            <button class="btn" onclick="openToolInNewWindow()" style="padding:0.3rem 0.6rem; font-size:0.72rem; display:inline-flex; align-items:center; gap:0.25rem;">
+              👁️ 在新分頁開啟
+            </button>
+          </div>
+        </div>
+      `;
+      
+      // 直接展示沙盒
+      detailBody.style.display = 'none';
+      sandboxContainer.style.display = 'block';
+      sandboxIframe.srcdoc = tool.code;
+      
+      // 控制按鈕狀態
+      const renderSandboxBtn = document.getElementById('render-sandbox-btn');
+      renderSandboxBtn.style.display = 'inline-block';
+      renderSandboxBtn.textContent = '📄 查看文件';
+      renderSandboxBtn.style.background = 'var(--primary)';
+      renderSandboxBtn.style.borderColor = 'var(--primary)';
+      
+      // markdownContent 預設清空或給說明
+      detailBody.innerHTML = `<p style="padding:1rem;color:var(--text-muted);font-size:0.8rem;">此工具目前正在沙盒中運行。點擊「查看文件」可切換。</p>`;
+      
+      // 顯示收藏按鈕（已在工具箱中，因此收藏按鈕設為隱藏）
+      const saveSandboxToolBtn = document.getElementById('save-sandbox-tool-btn');
+      if (saveSandboxToolBtn) saveSandboxToolBtn.style.display = 'none';
+
+      resultsDrawer.classList.add('open');
+    };
+
+    window.openToolInNewWindow = function() {
+      if (!currentReportHtmlCode) return;
+      const newWin = window.open();
+      if (newWin) {
+        newWin.document.write(currentReportHtmlCode);
+        newWin.document.close();
+      } else {
+        showToast("新分頁開啟失敗，可能被瀏覽器彈窗攔截！", true);
+      }
+    };
+
+    window.deleteSavedTool = function(toolId) {
+      if (!confirm("確定要將此工具從您的工具箱中刪除嗎？")) return;
+      let customTools = JSON.parse(localStorage.getItem('custom_tools') || '[]');
+      customTools = customTools.filter(t => t.id !== toolId);
+      localStorage.setItem('custom_tools', JSON.stringify(customTools));
+      showToast("已成功刪除該工具。");
+      triggerAutoSync();
+      renderSavedTools();
+    };
+
     document.getElementById('download-report-btn').addEventListener('click', () => {
       if (activeAgentReport) {
         downloadFile(activeAgentReport);
       }
     });
+
+    // 🛠️ 更新派遣進度條與打勾狀態
+    function updateDispatchProgress(percent, activeStepIndex) {
+      const progressBar = document.getElementById('dispatch-progress-bar');
+      const progressPercent = document.getElementById('dispatch-progress-percent');
+      if (progressBar) progressBar.style.width = percent + '%';
+      if (progressPercent) progressPercent.textContent = percent + '%';
+
+      for (let i = 1; i <= 4; i++) {
+        const stepEl = document.getElementById(`prog-step-${i}`);
+        if (!stepEl) continue;
+        const iconEl = stepEl.querySelector('.step-check-icon');
+        if (i <= activeStepIndex) {
+          if (iconEl) iconEl.textContent = '✓';
+          stepEl.style.color = 'var(--color-success)';
+          stepEl.style.fontWeight = 'bold';
+        } else {
+          if (iconEl) iconEl.textContent = '⏳';
+          stepEl.style.color = 'var(--text-muted)';
+          stepEl.style.fontWeight = 'normal';
+        }
+      }
+    }
 
     // 初始化認證狀態
     checkAuth();
@@ -3539,10 +3819,11 @@
         const searchData = await searchRes.json();
         const files = searchData.files || [];
 
-        // 準備要同步上傳的本地資料包 (包含自訂員工、自訂工作流、總裁記憶 user.md、金鑰設定)
+        // 準備要同步上傳的本地資料包 (包含自訂員工、自訂工作流、總裁記憶 user.md、金鑰設定、收藏工具)
         const localDataBundle = {
           custom_agents: JSON.parse(localStorage.getItem('custom_agents') || '[]'),
           custom_workflows: JSON.parse(localStorage.getItem('custom_workflows') || '[]'),
+          custom_tools: JSON.parse(localStorage.getItem('custom_tools') || '[]'),
           user_md: localStorage.getItem('user_md') || '',
           settings: JSON.parse(localStorage.getItem('settings') || '{}'),
           timestamp: Date.now()
@@ -3563,6 +3844,7 @@
           if (cloudData.timestamp && cloudData.timestamp > (localDataBundle.timestamp || 0)) {
             if (cloudData.custom_agents) localStorage.setItem('custom_agents', JSON.stringify(cloudData.custom_agents));
             if (cloudData.custom_workflows) localStorage.setItem('custom_workflows', JSON.stringify(cloudData.custom_workflows));
+            if (cloudData.custom_tools) localStorage.setItem('custom_tools', JSON.stringify(cloudData.custom_tools));
             if (cloudData.user_md) localStorage.setItem('user_md', cloudData.user_md);
             if (cloudData.settings) localStorage.setItem('settings', JSON.stringify(cloudData.settings));
             
@@ -3570,6 +3852,7 @@
             // 重新渲染介面
             loadAgents();
             loadWorkflows();
+            renderSavedTools();
           } else {
             // 本地較新 -> 上傳覆蓋雲端
             await uploadFileToGDrive(fileId, localDataBundle);
@@ -3640,6 +3923,7 @@
           const localDataBundle = {
             custom_agents: JSON.parse(localStorage.getItem('custom_agents') || '[]'),
             custom_workflows: JSON.parse(localStorage.getItem('custom_workflows') || '[]'),
+            custom_tools: JSON.parse(localStorage.getItem('custom_tools') || '[]'),
             user_md: localStorage.getItem('user_md') || '',
             settings: JSON.parse(localStorage.getItem('settings') || '{}'),
             timestamp: Date.now()
@@ -3700,6 +3984,41 @@
       }
     });
 
+    // 獨立的定時任務儲存按鈕事件
+    const saveCronBtn = document.getElementById('save-cron-btn');
+    if (saveCronBtn) {
+      saveCronBtn.addEventListener('click', async () => {
+        saveCronBtn.disabled = true;
+        saveCronBtn.textContent = "儲存中...";
+        
+        const payload = {
+          subscription: currentSubscription,
+          openai_api_key: settingOpenaiKey.value.trim(),
+          gemini_api_key: settingGeminiKey.value.trim(),
+          cron_enabled: cronEnabledCheckbox.checked,
+          cron_schedule: document.getElementById('setting-cron-schedule').value,
+          cron_idea: document.getElementById('setting-cron-idea').value.trim(),
+          cron_workflow: document.getElementById('setting-cron-workflow').value
+        };
+
+        try {
+          const res = await apiRequest('/api/settings', 'POST', payload);
+          if (res) {
+            showToast("⏱️ 自動定時派遣排程已成功更新並啟用！");
+            
+            // 💾 本地備份與自動同步雲端 (方案 C)
+            localStorage.setItem('settings', JSON.stringify(payload));
+            triggerAutoSync();
+          }
+        } catch (e) {
+          showToast("儲存排程失敗：" + e.message, true);
+        } finally {
+          saveCronBtn.disabled = false;
+          saveCronBtn.textContent = "💾 儲存排程";
+        }
+      });
+    }
+
     // 綁定員工名冊分類篩選 Pills 按鈕
     document.querySelectorAll('.category-filter-bar button').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3709,6 +4028,15 @@
         loadAgents(filter);
       });
     });
+
+    // 註冊 PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker 註冊成功，範圍：', reg.scope))
+          .catch(err => console.warn('Service Worker 註冊失敗：', err));
+      });
+    }
   </script>
 </body>
 </html>
