@@ -13,6 +13,9 @@
   
   <!-- Markdown Parser -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Google API & GIS Loader for Google Drive Sync (方案 C) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
 
   <style>
     :root {
@@ -1639,6 +1642,23 @@
         </p>
       </div>
 
+      <!-- 🔄 方案 C: Google Drive 雲端同步設定 -->
+      <div class="form-group" style="margin-bottom:1.25rem;border-bottom:1px solid var(--border-color);padding-bottom:1rem;">
+        <label class="form-label" style="display:block;margin-bottom:0.4rem;font-weight:bold;">💾 雲端備份同步 (Google Drive 方案 C)</label>
+        <div class="form-group" style="margin-bottom:0.85rem;">
+          <label class="form-label" for="gdrive-client-id" style="font-size:0.78rem;">Google OAuth Client ID</label>
+          <input type="text" id="gdrive-client-id" class="form-input" placeholder="例如: 123456-xxxx.apps.googleusercontent.com" style="font-size:0.8rem;">
+        </div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+          <button class="btn" style="flex:1;padding:0.4rem;font-size:0.75rem;border-radius:2px;background:#4285F4;color:white;border:none;" id="gdrive-login-btn">🔑 授權雲端</button>
+          <button class="btn" style="flex:1;padding:0.4rem;font-size:0.75rem;border-radius:2px;background:var(--color-success);color:white;border:none;" id="gdrive-sync-btn" disabled>🔄 立即同步</button>
+          <button class="btn" style="flex:1;padding:0.4rem;font-size:0.75rem;border-radius:2px;background:var(--danger);color:white;border:none;" id="gdrive-logout-btn" style="display:none;">斷開</button>
+        </div>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;" id="gdrive-status-text">
+          狀態：未授權。填入 Google Client ID 並授權後，即可自動將員工、習慣與設定備份至個人雲端硬碟。
+        </p>
+      </div>
+
       <div class="form-group" style="margin-bottom:1.25rem;">
         <label class="form-label" style="display:block;margin-bottom:0.4rem;font-weight:bold;">總裁訂閱方案</label>
         <div style="display:flex;gap:0.5rem;">
@@ -1979,6 +1999,16 @@
           loadHistory(),
           loadSettings()
         ]);
+        
+        // 🔄 嘗試載入並還原 Google Drive 同步授權 (方案 C)
+        const savedToken = localStorage.getItem('gdrive_access_token');
+        if (savedToken) {
+          gdriveAccessToken = savedToken;
+          // 背景嘗試同步，不阻礙畫面渲染
+          setTimeout(() => {
+            syncWithGDrive();
+          }, 1000);
+        }
       } catch (e) {
         console.error("載入初始化資料失敗", e);
       }
@@ -2300,6 +2330,13 @@
         newAgentLlmCustomInput.value = '';
         newAgentLlmCustomInput.style.display = 'none';
         document.getElementById('new-agent-category').value = 'custom';
+        
+        // 💾 本地備份與自動同步雲端 (方案 C)
+        let localAgents = JSON.parse(localStorage.getItem('custom_agents') || '[]');
+        localAgents.push(res.agent);
+        localStorage.setItem('custom_agents', JSON.stringify(localAgents));
+        triggerAutoSync();
+
         loadAgents();
       }
     });
@@ -2415,6 +2452,13 @@
         document.getElementById('new-team-name').value = '';
         document.getElementById('new-team-desc').value = '';
         builderSelectedFlow = [];
+        
+        // 💾 本地備份與自動同步雲端 (方案 C)
+        let localWorkflows = JSON.parse(localStorage.getItem('custom_workflows') || '[]');
+        localWorkflows.push(res.workflow);
+        localStorage.setItem('custom_workflows', JSON.stringify(localWorkflows));
+        triggerAutoSync();
+
         loadWorkflows();
       }
     });
@@ -3208,6 +3252,11 @@
         const res = await apiRequest('/api/user_md', 'POST', { content: newContent });
         if (res) {
           showToast(res.message);
+          
+          // 💾 本地備份與自動同步雲端 (方案 C)
+          localStorage.setItem('user_md', newContent);
+          triggerAutoSync();
+
           userMdDrawer.classList.remove('open');
         }
       } catch (e) {
@@ -3281,6 +3330,11 @@
           
           // 後端網址填充
           settingBackendUrl.value = BACKEND_URL;
+
+          // 🔄 Google Drive 同步設定填充 (方案 C)
+          const savedClientId = localStorage.getItem('gdrive_client_id') || '';
+          document.getElementById('gdrive-client-id').value = savedClientId;
+          updateGDriveStatusUI();
           
           settingsDrawer.classList.add('open');
         }
@@ -3288,6 +3342,231 @@
         showToast("無法載入設置：" + e.message, true);
       }
     });
+
+    // ── 🔄 Google Drive API 雲端同步核心邏輯 (方案 C) ─────────────────────────
+    let gdriveTokenClient = null;
+    let gdriveAccessToken = null;
+    const GDRIVE_SYNC_FILENAME = 'jehacorp_sync.json';
+
+    function updateGDriveStatusUI() {
+      const clientId = document.getElementById('gdrive-client-id').value.trim();
+      const statusText = document.getElementById('gdrive-status-text');
+      const loginBtn = document.getElementById('gdrive-login-btn');
+      const syncBtn = document.getElementById('gdrive-sync-btn');
+      const logoutBtn = document.getElementById('gdrive-logout-btn');
+
+      if (!clientId) {
+        statusText.innerHTML = "⚠️ 請先填入 Google OAuth Client ID 才能啟用雲端同步。";
+        loginBtn.disabled = true;
+        syncBtn.disabled = true;
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        return;
+      }
+
+      loginBtn.disabled = false;
+      if (gdriveAccessToken) {
+        statusText.innerHTML = "✅ 已連結 Google Drive 雲端空間。";
+        loginBtn.style.display = 'none';
+        syncBtn.disabled = false;
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      } else {
+        statusText.innerHTML = "狀態：未授權。請點擊「授權雲端」按鈕。";
+        loginBtn.style.display = 'inline-block';
+        syncBtn.disabled = true;
+        if (logoutBtn) logoutBtn.style.display = 'none';
+      }
+    }
+
+    document.getElementById('gdrive-client-id').addEventListener('input', () => {
+      localStorage.setItem('gdrive_client_id', document.getElementById('gdrive-client-id').value.trim());
+      updateGDriveStatusUI();
+    });
+
+    // 授權登入
+    document.getElementById('gdrive-login-btn').addEventListener('click', () => {
+      const clientId = document.getElementById('gdrive-client-id').value.trim();
+      if (!clientId) return;
+
+      try {
+        if (!gdriveTokenClient) {
+          gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'https://www.googleapis.com/auth/drive.file',
+            callback: (tokenResponse) => {
+              if (tokenResponse.error !== undefined) {
+                showToast("Google 授權失敗: " + tokenResponse.error, true);
+                return;
+              }
+              gdriveAccessToken = tokenResponse.access_token;
+              localStorage.setItem('gdrive_access_token', gdriveAccessToken);
+              showToast("Google Drive 授權成功！");
+              updateGDriveStatusUI();
+              // 授權成功後，自動觸發一次同步
+              syncWithGDrive();
+            },
+          });
+        }
+        gdriveTokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (err) {
+        showToast("初始化 Google Identity 失敗，請確認 Client ID 是否正確：" + err.message, true);
+      }
+    });
+
+    // 斷開連結
+    const gdLogoutBtn = document.getElementById('gdrive-logout-btn');
+    if (gdLogoutBtn) {
+      gdLogoutBtn.addEventListener('click', () => {
+        gdriveAccessToken = null;
+        localStorage.removeItem('gdrive_access_token');
+        showToast("已斷開 Google Drive 連結。");
+        updateGDriveStatusUI();
+      });
+    }
+
+    // 點擊手動同步
+    document.getElementById('gdrive-sync-btn').addEventListener('click', () => {
+      syncWithGDrive();
+    });
+
+    // 雲端同步上傳/下載核心程序
+    async function syncWithGDrive() {
+      if (!gdriveAccessToken) {
+        showToast("請先完成 Google 授權！", true);
+        return;
+      }
+      
+      const syncBtn = document.getElementById('gdrive-sync-btn');
+      syncBtn.disabled = true;
+      syncBtn.textContent = '同步中...';
+      addTerminalLog("[雲端同步] 🔄 開始進行 Google Drive 雲端數據對接與同步...", "info");
+
+      try {
+        // 1. 搜尋 Google Drive 中是否有舊的同步檔案
+        const listUrl = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(`name='${GDRIVE_SYNC_FILENAME}' and trashed=false`);
+        const searchRes = await fetch(listUrl, {
+          headers: { 'Authorization': `Bearer ${gdriveAccessToken}` }
+        });
+        const searchData = await searchRes.json();
+        const files = searchData.files || [];
+
+        // 準備要同步上傳的本地資料包 (包含自訂員工、自訂工作流、總裁記憶 user.md、金鑰設定)
+        const localDataBundle = {
+          custom_agents: JSON.parse(localStorage.getItem('custom_agents') || '[]'),
+          custom_workflows: JSON.parse(localStorage.getItem('custom_workflows') || '[]'),
+          user_md: localStorage.getItem('user_md') || '',
+          settings: JSON.parse(localStorage.getItem('settings') || '{}'),
+          timestamp: Date.now()
+        };
+
+        if (files.length > 0) {
+          // 有找到雲端檔案 -> 下載並與本地進行合併
+          const fileId = files[0].id;
+          const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+          const downloadRes = await fetch(downloadUrl, {
+            headers: { 'Authorization': `Bearer ${gdriveAccessToken}` }
+          });
+          const cloudData = await downloadRes.json();
+          
+          addTerminalLog("[雲端同步] 📥 偵測到雲端備份檔，正在進行雙向資料合併...", "info");
+          
+          // 雙向合併邏輯：若雲端時間戳較新，則覆蓋本地
+          if (cloudData.timestamp && cloudData.timestamp > (localDataBundle.timestamp || 0)) {
+            if (cloudData.custom_agents) localStorage.setItem('custom_agents', JSON.stringify(cloudData.custom_agents));
+            if (cloudData.custom_workflows) localStorage.setItem('custom_workflows', JSON.stringify(cloudData.custom_workflows));
+            if (cloudData.user_md) localStorage.setItem('user_md', cloudData.user_md);
+            if (cloudData.settings) localStorage.setItem('settings', JSON.stringify(cloudData.settings));
+            
+            addTerminalLog("[雲端同步] 📥 雲端資料較新，已成功更新本地 AI 員工與總裁記憶！", "success");
+            // 重新渲染介面
+            loadAgents();
+            loadWorkflows();
+          } else {
+            // 本地較新 -> 上傳覆蓋雲端
+            await uploadFileToGDrive(fileId, localDataBundle);
+            addTerminalLog("[雲端同步] 📤 本地資料較新，已成功上傳覆蓋雲端備份！", "success");
+          }
+        } else {
+          // 沒有找到雲端檔案 -> 新建檔案並上傳
+          await createAndUploadFileToGDrive(localDataBundle);
+          addTerminalLog("[雲端同步] 📤 首次同步：已在您的 Google Drive 建立 jehacorp_sync.json 備份檔！", "success");
+        }
+        showToast("雲端同步完成！資料已安全保存。");
+      } catch (err) {
+        console.error(err);
+        showToast("同步失敗: " + err.message, true);
+        addTerminalLog(`[同步失敗] ❌ 無法完成雲端同步：${err.message}`, "error");
+      } finally {
+        syncBtn.disabled = false;
+        syncBtn.textContent = '🔄 立即同步';
+      }
+    }
+
+    // 新建並上傳檔案
+    async function createAndUploadFileToGDrive(data) {
+      const metadata = {
+        name: GDRIVE_SYNC_FILENAME,
+        mimeType: 'application/json'
+      };
+      
+      const fileData = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', fileData);
+
+      const url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${gdriveAccessToken}` },
+        body: form
+      });
+      if (!res.ok) throw new Error('新建檔案失敗');
+    }
+
+    // 覆蓋現有檔案
+    async function uploadFileToGDrive(fileId, data) {
+      const fileData = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${gdriveAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: fileData
+      });
+      if (!res.ok) throw new Error('更新檔案失敗');
+    }
+
+    // 當本地變更時，自動觸發背景同步 (防手滑忘記同步)
+    async function triggerAutoSync() {
+      if (gdriveAccessToken) {
+        try {
+          // 異步在背景執行，不影響使用者介面操作
+          const listUrl = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(`name='${GDRIVE_SYNC_FILENAME}' and trashed=false`);
+          const searchRes = await fetch(listUrl, { headers: { 'Authorization': `Bearer ${gdriveAccessToken}` } });
+          const searchData = await searchRes.json();
+          const files = searchData.files || [];
+          
+          const localDataBundle = {
+            custom_agents: JSON.parse(localStorage.getItem('custom_agents') || '[]'),
+            custom_workflows: JSON.parse(localStorage.getItem('custom_workflows') || '[]'),
+            user_md: localStorage.getItem('user_md') || '',
+            settings: JSON.parse(localStorage.getItem('settings') || '{}'),
+            timestamp: Date.now()
+          };
+
+          if (files.length > 0) {
+            await uploadFileToGDrive(files[0].id, localDataBundle);
+          } else {
+            await createAndUploadFileToGDrive(localDataBundle);
+          }
+          console.log('[AutoSync] 雲端自動背景備份完成。');
+        } catch(e) {
+          console.warn('[AutoSync] 背景同步暫時失敗：', e.message);
+        }
+      }
+    }
+
 
     document.getElementById('settings-drawer-close').addEventListener('click', () => {
       settingsDrawer.classList.remove('open');
@@ -3312,6 +3591,10 @@
         if (res) {
           showToast(res.message);
           
+          // 💾 本地備份與自動同步雲端 (方案 C)
+          localStorage.setItem('settings', JSON.stringify(payload));
+          triggerAutoSync();
+
           // 保存自訂後端網址到本機 localStorage
           const bUrl = settingBackendUrl.value.trim();
           BACKEND_URL = bUrl.endsWith('/') ? bUrl.slice(0, -1) : bUrl;
