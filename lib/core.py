@@ -14,85 +14,63 @@ try:
 except ImportError:
     OpenAI = None
 
-# ── Upstash Redis (Vercel KV) 與 TCP Redis 雙驅動封裝 ──────────────────────────
+# ── Vercel Serverless Postgres (Neon) KV 適配封裝 ──────────────────────────────
 try:
-    import urllib.request
-    import redis  # 引入 redis-py 套件
+    import psycopg2
+    # Vercel Serverless Postgres 自動注入的環境變數 (優先使用 POSTGRES_URL)
+    _PG_URL = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL") or ""
 
-    _UPSTASH_URL = os.environ.get("KV_REST_API_URL") or os.environ.get("UPSTASH_REDIS_REST_URL") or ""
-    _UPSTASH_TOKEN = os.environ.get("KV_REST_API_TOKEN") or os.environ.get("UPSTASH_REDIS_REST_TOKEN") or ""
-    _REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("KV_URL") or ""
+    def _get_pg_conn():
+        if not _PG_URL:
+            return None
+        # 建立 TCP 直連 Postgres
+        conn = psycopg2.connect(_PG_URL)
+        conn.autocommit = True
+        return conn
 
-    # 初始化 Redis TCP 客戶端 (優先直連)
-    _redis_client = None
-    if _REDIS_URL:
+    # 初始化建表
+    if _PG_URL:
         try:
-            _redis_client = redis.Redis.from_url(_REDIS_URL, decode_responses=True, socket_timeout=5)
+            with _get_pg_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS kv_store (
+                            key VARCHAR(512) PRIMARY KEY,
+                            value TEXT,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """)
         except Exception as e:
-            print(f"[REDIS_TCP_INIT_ERROR] {_REDIS_URL}, err={e}")
-            _redis_client = None
-
-    def _kv_command(cmd_list):
-        base_url = _UPSTASH_URL.rstrip('/')
-        req = urllib.request.Request(
-            base_url,
-            data=json.dumps(cmd_list).encode('utf-8'),
-            headers={
-                "Authorization": f"Bearer {_UPSTASH_TOKEN}",
-                "Content-Type": "application/json"
-            },
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=5) as res:
-            return json.loads(res.read().decode())
+            print(f"[PG_INIT_ERROR] err={e}")
 
     def kv_get(key):
-        # 1. 優先採用 TCP 驅動
-        if _redis_client:
-            try:
-                val = _redis_client.get(key)
-                if val is not None:
-                    return val
-            except Exception as e:
-                print(f"[REDIS_TCP_GET_ERROR] key={key}, err={e}")
-                # TCP 失敗時不拋錯，繼續往下嘗試 HTTP 驅動
-
-        # 2. 次要採用 HTTP REST 驅動
-        if not _UPSTASH_URL:
+        if not _PG_URL:
             return None
         try:
-            result = _kv_command(["GET", key])
-            return result.get("result")
+            with _get_pg_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT value FROM kv_store WHERE key = %s;", (key,))
+                    row = cur.fetchone()
+                    return row[0] if row else None
         except Exception as e:
-            print(f"[KV_GET_ERROR] key={key}, err={e}")
+            print(f"[PG_GET_ERROR] key={key}, err={e}")
             return None
 
     def kv_set(key, value, ex=None):
-        """ex = expiry in seconds (optional)"""
-        # 1. 優先採用 TCP 驅動
-        if _redis_client:
-            try:
-                if ex:
-                    return bool(_redis_client.set(key, value, ex=int(ex)))
-                else:
-                    return bool(_redis_client.set(key, value))
-            except Exception as e:
-                print(f"[REDIS_TCP_SET_ERROR] key={key}, err={e}")
-                # TCP 失敗時不拋錯，繼續往下嘗試 HTTP 驅動
-
-        # 2. 次要採用 HTTP REST 驅動
-        if not _UPSTASH_URL:
+        if not _PG_URL:
             return False
         try:
-            if ex:
-                cmd = ["SET", key, value, "EX", int(ex)]
-            else:
-                cmd = ["SET", key, value]
-            result = _kv_command(cmd)
-            # Upstash command style SET returns {"result": "OK"} on success
-            return result.get("result") == "OK"
+            with _get_pg_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO kv_store (key, value, updated_at) 
+                        VALUES (%s, %s, CURRENT_TIMESTAMP) 
+                        ON CONFLICT (key) 
+                        DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP;
+                    """, (key, str(value)))
+                    return True
         except Exception as e:
-            print(f"[KV_SET_ERROR] key={key}, err={e}")
+            print(f"[PG_SET_ERROR] key={key}, err={e}")
             return False
 
     def kv_get_json(key):
@@ -108,7 +86,7 @@ try:
         return kv_set(key, json.dumps(value, ensure_ascii=False), ex)
 
 except Exception as global_err:
-    print(f"[REDIS_GLOBAL_INIT_ERROR] {global_err}")
+    print(f"[PG_GLOBAL_INIT_ERROR] {global_err}")
     def kv_get(key): return None
     def kv_set(key, value, ex=None): return False
     def kv_get_json(key): return None
