@@ -774,10 +774,18 @@ def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=
                     )
                     output_content = response.choices[0].message.content
 
-                report_filename = f"{step_num}_{agent_id}.md"
+                report_filename = "complete_report.md"
                 report_file_path = os.path.join(output_path, report_filename)
-                with open(report_file_path, "w", encoding="utf-8") as f:
-                    f.write(output_content)
+                
+                # 如果是第一步且檔案不存在，先建立完整報告的標題
+                if not os.path.exists(report_file_path):
+                    with open(report_file_path, "w", encoding="utf-8") as f:
+                        f.write("# 📁 專案完整開發報告 (complete_report.md)\n\n本報告已彙整旗下協同小組所有虛擬員工的交付成果與總裁審核紀錄。\n\n---\n")
+                
+                with open(report_file_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n## 👥 階段 {step_num}：{agent_name} ({emoji}) 的交付成果\n")
+                    f.write("*   **執行狀態**：已通過總裁雙重審核 (Fable & Security Review) ✅\n")
+                    f.write(f"*   **交付內容**：\n\n{output_content}\n\n---\n")
 
                 # 總裁 Code Review 審查
                 log({

@@ -255,9 +255,16 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                   "agent_id": agent_id, "agent_name": agent_name, "emoji": emoji,
                   "message": "💾 總裁雙重 Review 通過，正在進行寫檔歸檔..."})
 
-            report_filename = f"{step_num}_{agent_id}.md"
-            project_files[report_filename] = output_content
-            all_file_names.append(report_filename)
+            report_filename = "complete_report.md"
+            if report_filename not in project_files:
+                project_files[report_filename] = "# 📁 專案完整開發報告 (complete_report.md)\n\n本報告已彙整旗下協同小組所有虛擬員工的交付成果與總裁審核紀錄。\n\n---\n"
+            
+            project_files[report_filename] += f"\n## 👥 階段 {step_num}：{agent_name} ({emoji}) 的交付成果\n"
+            project_files[report_filename] += f"*   **執行狀態**：已通過總裁雙重審核 (Fable & Security Review) ✅\n"
+            project_files[report_filename] += f"*   **交付內容**：\n\n{output_content}\n\n---\n"
+            
+            if report_filename not in all_file_names:
+                all_file_names.append(report_filename)
 
             extracted = extract_files_from_content(output_content)
             for fname, fcontent in extracted.items():
