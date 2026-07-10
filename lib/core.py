@@ -20,13 +20,16 @@ try:
     _UPSTASH_URL = os.environ.get("KV_REST_API_URL") or os.environ.get("UPSTASH_REDIS_REST_URL") or ""
     _UPSTASH_TOKEN = os.environ.get("KV_REST_API_TOKEN") or os.environ.get("UPSTASH_REDIS_REST_TOKEN") or ""
 
-    def _kv_request(method, path, body=None):
-        url = f"{_UPSTASH_URL}{path}"
-        data = json.dumps(body).encode() if body else None
+    def _kv_command(cmd_list):
+        base_url = _UPSTASH_URL.rstrip('/')
         req = urllib.request.Request(
-            url, data=data,
-            headers={"Authorization": f"Bearer {_UPSTASH_TOKEN}", "Content-Type": "application/json"},
-            method=method
+            base_url,
+            data=json.dumps(cmd_list).encode('utf-8'),
+            headers={
+                "Authorization": f"Bearer {_UPSTASH_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            method="POST"
         )
         with urllib.request.urlopen(req, timeout=5) as res:
             return json.loads(res.read().decode())
@@ -35,9 +38,10 @@ try:
         if not _UPSTASH_URL:
             return None
         try:
-            result = _kv_request("GET", f"/get/{urllib.parse.quote(key, safe='')}")
+            result = _kv_command(["GET", key])
             return result.get("result")
-        except Exception:
+        except Exception as e:
+            print(f"[KV_GET_ERROR] key={key}, err={e}")
             return None
 
     def kv_set(key, value, ex=None):
@@ -45,13 +49,15 @@ try:
         if not _UPSTASH_URL:
             return False
         try:
-            encoded_key = urllib.parse.quote(key, safe='')
             if ex:
-                _kv_request("GET", f"/setex/{encoded_key}/{ex}/{urllib.parse.quote(json.dumps(value), safe='')}")
+                cmd = ["SET", key, value, "EX", int(ex)]
             else:
-                _kv_request("GET", f"/set/{encoded_key}/{urllib.parse.quote(json.dumps(value), safe='')}")
-            return True
-        except Exception:
+                cmd = ["SET", key, value]
+            result = _kv_command(cmd)
+            # Upstash command style SET returns {"result": "OK"} on success
+            return result.get("result") == "OK"
+        except Exception as e:
+            print(f"[KV_SET_ERROR] key={key}, err={e}")
             return False
 
     def kv_get_json(key):
@@ -65,8 +71,6 @@ try:
 
     def kv_set_json(key, value, ex=None):
         return kv_set(key, json.dumps(value, ensure_ascii=False), ex)
-
-    import urllib.parse  # noqa
 
 except Exception:
     def kv_get(key): return None
