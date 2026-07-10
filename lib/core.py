@@ -3,6 +3,8 @@ lib/core.py — JehaCorp 共用邏輯模組
 所有 Serverless Functions 共用的：Agent 設定、AI 呼叫、KV 讀寫封裝
 """
 import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
 import json
 import re
 import time
