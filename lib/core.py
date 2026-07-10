@@ -86,11 +86,42 @@ try:
         return kv_set(key, json.dumps(value, ensure_ascii=False), ex)
 
 except Exception as global_err:
-    print(f"[PG_GLOBAL_INIT_ERROR] {global_err}")
-    def kv_get(key): return None
-    def kv_set(key, value, ex=None): return False
-    def kv_get_json(key): return None
-    def kv_set_json(key, value, ex=None): return False
+    print(f"[PG_GLOBAL_INIT_ERROR] {global_err} - 啟用本地內置 JSON/Memory 備份模擬")
+    _LOCAL_KV = {}
+    
+    # 試著載入本地 fallback.json (只在本地開發且沒有 Postgres 時起效)
+    _FALLBACK_FILE = os.path.join(parent_dir, "data", "kv_fallback.json")
+    try:
+        os.makedirs(os.path.dirname(_FALLBACK_FILE), exist_ok=True)
+        if os.path.exists(_FALLBACK_FILE):
+            with open(_FALLBACK_FILE, "r", encoding="utf-8") as f:
+                _LOCAL_KV = json.load(f)
+    except Exception:
+        pass
+
+    def kv_get(key):
+        return _LOCAL_KV.get(key)
+
+    def kv_set(key, value, ex=None):
+        _LOCAL_KV[key] = str(value)
+        try:
+            with open(_FALLBACK_FILE, "w", encoding="utf-8") as f:
+                json.dump(_LOCAL_KV, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+        return True
+
+    def kv_get_json(key):
+        raw = kv_get(key)
+        if raw is None:
+            return None
+        try:
+            return json.loads(raw) if isinstance(raw, str) else raw
+        except Exception:
+            return None
+
+    def kv_set_json(key, value, ex=None):
+        return kv_set(key, json.dumps(value, ensure_ascii=False), ex)
 
 
 # ── 預設資料 ─────────────────────────────────────────────────────────────────

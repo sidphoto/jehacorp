@@ -1306,6 +1306,20 @@ class AgencyHandler(SimpleHTTPRequestHandler):
             self.send_json_response(200, masked_settings)
             return
 
+        elif path == "/api/job":
+            query_params = urllib.parse.parse_qs(url_parsed.query)
+            job_id = query_params.get("id", [""])[0].strip()
+            if not job_id:
+                self.send_json_response(400, {"error": "缺少 job id"})
+                return
+            from lib.core import get_job_state
+            state = get_job_state(job_id)
+            if state is None:
+                self.send_json_response(404, {"error": "找不到此任務"})
+                return
+            self.send_json_response(200, state)
+            return
+
         self.send_json_response(404, {"error": "找不到此 API"})
 
     def do_POST(self):
@@ -1336,6 +1350,63 @@ class AgencyHandler(SimpleHTTPRequestHandler):
                 "avatar": "🎓",
                 "email": email
             })
+            return
+
+        elif path == "/api/run":
+            user_id = self.headers.get("Authorization", "") or self.headers.get("authorization", "")
+            if user_id.startswith("Bearer "):
+                user_id = user_id.split("Bearer ", 1)[1].strip()
+            
+            if not user_id or "@" not in user_id:
+                self.send_json_response(401, {"error": "請先登入！"})
+                return
+
+            idea = body.get("idea", "").strip()
+            if not idea:
+                self.send_json_response(400, {"error": "請提供點子 (idea) 內容！"})
+                return
+
+            workflow_type = body.get("workflow", "mvp").strip()
+            mock_mode = body.get("mock", False)
+            meeting_mode = body.get("meeting", False)
+            discussion_consensus = body.get("discussion", "").strip()
+            acceptance_feedback = body.get("feedback", "").strip()
+            single_agent = body.get("single_agent", False)
+
+            # 生成唯一 job_id 并初始化 state
+            from lib.core import save_job_state
+            job_id = f"job_local_{str(int(time.time()))}"
+            save_job_state(job_id, {"status": "running", "events": [], "finished": False})
+
+            # 背景執行並利用 local_emitter 追加事件
+            def local_emitter(event_data):
+                from lib.core import get_job_state, save_job_state
+                state = get_job_state(job_id) or {"status": "running", "events": [], "finished": False}
+                if event_data.get("status") == "finished":
+                    state["finished"] = True
+                    state["status"] = "finished"
+                state.setdefault("events", []).append(event_data)
+                save_job_state(job_id, state)
+
+            import threading
+            t = threading.Thread(
+                target=execute_workflow,
+                kwargs={
+                    "user_id": user_id,
+                    "idea": idea,
+                    "workflow_type": workflow_type,
+                    "mock_mode": mock_mode,
+                    "sse_emitter": local_emitter,
+                    "meeting_mode": meeting_mode,
+                    "discussion_consensus": discussion_consensus,
+                    "acceptance_feedback": acceptance_feedback,
+                    "single_agent": single_agent
+                },
+                daemon=True
+            )
+            t.start()
+
+            self.send_json_response(200, {"job_id": job_id, "message": "任務已啟動！"})
             return
 
         user_id = get_user_id_from_headers(self.headers)
