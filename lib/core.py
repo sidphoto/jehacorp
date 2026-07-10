@@ -14,11 +14,23 @@ try:
 except ImportError:
     OpenAI = None
 
-# ── Upstash Redis (Vercel KV) 封裝 ──────────────────────────────────────────
+# ── Upstash Redis (Vercel KV) 與 TCP Redis 雙驅動封裝 ──────────────────────────
 try:
     import urllib.request
+    import redis  # 引入 redis-py 套件
+
     _UPSTASH_URL = os.environ.get("KV_REST_API_URL") or os.environ.get("UPSTASH_REDIS_REST_URL") or ""
     _UPSTASH_TOKEN = os.environ.get("KV_REST_API_TOKEN") or os.environ.get("UPSTASH_REDIS_REST_TOKEN") or ""
+    _REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("KV_URL") or ""
+
+    # 初始化 Redis TCP 客戶端 (優先直連)
+    _redis_client = None
+    if _REDIS_URL:
+        try:
+            _redis_client = redis.Redis.from_url(_REDIS_URL, decode_responses=True, socket_timeout=5)
+        except Exception as e:
+            print(f"[REDIS_TCP_INIT_ERROR] {_REDIS_URL}, err={e}")
+            _redis_client = None
 
     def _kv_command(cmd_list):
         base_url = _UPSTASH_URL.rstrip('/')
@@ -35,6 +47,17 @@ try:
             return json.loads(res.read().decode())
 
     def kv_get(key):
+        # 1. 優先採用 TCP 驅動
+        if _redis_client:
+            try:
+                val = _redis_client.get(key)
+                if val is not None:
+                    return val
+            except Exception as e:
+                print(f"[REDIS_TCP_GET_ERROR] key={key}, err={e}")
+                # TCP 失敗時不拋錯，繼續往下嘗試 HTTP 驅動
+
+        # 2. 次要採用 HTTP REST 驅動
         if not _UPSTASH_URL:
             return None
         try:
@@ -46,6 +69,18 @@ try:
 
     def kv_set(key, value, ex=None):
         """ex = expiry in seconds (optional)"""
+        # 1. 優先採用 TCP 驅動
+        if _redis_client:
+            try:
+                if ex:
+                    return bool(_redis_client.set(key, value, ex=int(ex)))
+                else:
+                    return bool(_redis_client.set(key, value))
+            except Exception as e:
+                print(f"[REDIS_TCP_SET_ERROR] key={key}, err={e}")
+                # TCP 失敗時不拋錯，繼續往下嘗試 HTTP 驅動
+
+        # 2. 次要採用 HTTP REST 驅動
         if not _UPSTASH_URL:
             return False
         try:
@@ -72,7 +107,8 @@ try:
     def kv_set_json(key, value, ex=None):
         return kv_set(key, json.dumps(value, ensure_ascii=False), ex)
 
-except Exception:
+except Exception as global_err:
+    print(f"[REDIS_GLOBAL_INIT_ERROR] {global_err}")
     def kv_get(key): return None
     def kv_set(key, value, ex=None): return False
     def kv_get_json(key): return None
