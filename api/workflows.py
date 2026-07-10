@@ -6,7 +6,8 @@ for d in [current_dir, parent_dir, "/var/task"]:
         sys.path.insert(0, d)
 
 import json
-from lib.flask_compat import make_flask_app, time
+from lib.flask_compat import make_flask_app
+import time
 from lib.core import (BUILTIN_WORKFLOWS, get_user_workflows, save_user_workflows,
                       get_user_id_from_request)
 
