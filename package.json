@@ -1,0 +1,7 @@
+{
+  "name": "jehacorp-queue-runtime",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "dependencies": { "@vercel/queue": "^0.1.3" }
+}

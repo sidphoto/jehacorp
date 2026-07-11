@@ -1780,7 +1780,7 @@
             </div>
           </div>
           <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.5rem;line-height:1.3;margin-bottom:0;">
-            * 此金鑰僅儲存在您的瀏覽器，不會上傳備份至後端資料庫，點擊派遣時將優先調用。
+            * 金鑰平時僅存於瀏覽器；派遣後會以伺服器專用金鑰加密成短期工作負載，後端與 Queue 均不保存明文。
           </p>
         </div>
         </details>
@@ -1788,6 +1788,11 @@
         <div style="display:flex;gap:0.5rem;width:100%;">
           <button class="btn btn-secondary" style="flex:1;background:var(--secondary);border-color:var(--secondary);color:#fff;font-size:0.85rem;" id="chat-ceo-btn">💬 與總裁商討方案</button>
           <button class="btn" style="flex:1.2;font-size:0.85rem;" id="launch-btn">立即派遣任務</button>
+        </div>
+        <div id="job-control-bar" style="display:none;gap:0.4rem;width:100%;">
+          <button class="btn btn-secondary" id="job-pause-btn" style="flex:1;font-size:0.76rem;">暫停</button>
+          <button class="btn btn-secondary" id="job-resume-btn" style="flex:1;font-size:0.76rem;">續跑</button>
+          <button class="btn btn-secondary" id="job-cancel-btn" style="flex:1;font-size:0.76rem;color:var(--danger);">取消任務</button>
         </div>
       </div>
 
@@ -3317,6 +3322,20 @@
     }
 
     // 通用專案發起與小組工作流派遣執行函數 (支援決策共識、驗收意見傳參與單兵指派模式)
+    let activeJobId = null;
+
+    async function controlActiveJob(action) {
+      if (!activeJobId) return;
+      const state = await apiRequest(`/api/job?id=${encodeURIComponent(activeJobId)}`, 'POST', { action });
+      if (!state) return;
+      const labels = { pause: '暫停請求已送出', resume: '任務已重新排入可靠佇列', cancel: '取消請求已送出' };
+      addTerminalLog(`[任務控制] ${labels[action]}`, 'warning');
+      showToast(labels[action]);
+    }
+    document.getElementById('job-pause-btn').addEventListener('click', () => controlActiveJob('pause'));
+    document.getElementById('job-resume-btn').addEventListener('click', () => controlActiveJob('resume'));
+    document.getElementById('job-cancel-btn').addEventListener('click', () => controlActiveJob('cancel'));
+
     async function startWorkflowExecution(consensus = "", feedback = "", singleAgent = false, singleCommand = "") {
       let idea = "";
       let wfId = "";
@@ -3484,6 +3503,14 @@
           if (railMissionState) railMissionState.textContent = '已因預算上限安全停止';
           showToast(data.message || 'Token 預算已達上限', true);
           addTerminalLog(`[預算熔斷] ${data.error || data.message}`, 'error');
+        } else if (data.status === 'paused') {
+          addTerminalLog(`[任務暫停] ${data.message || '可按「續跑」重新排入可靠佇列。'}`, 'warning');
+          const railMissionState = document.getElementById('rail-mission-state');
+          if (railMissionState) railMissionState.textContent = '已暫停，等待續跑';
+        } else if (data.status === 'canceled') {
+          addTerminalLog(`[任務取消] ${data.message || '任務已安全終止。'}`, 'warning');
+          const railMissionState = document.getElementById('rail-mission-state');
+          if (railMissionState) railMissionState.textContent = '已取消';
         } else if (data.status === 'error') {
           showToast(data.error, true);
           addTerminalLog(`[執行錯誤] ${data.error}`, 'error');
@@ -3580,6 +3607,8 @@
         const runRes = await apiRequest('/api/run', 'POST', pollingPayload);
         if (!runRes || !runRes.job_id) throw new Error(runRes?.error || '無法啟動任務');
         currentJobId = runRes.job_id;
+        activeJobId = currentJobId;
+        document.getElementById('job-control-bar').style.display = 'flex';
         addTerminalLog(`[任務啟動] 🚀 任務已提交後端！Job ID: ${currentJobId}，開始輪詢進度...`, 'info');
       } catch(e) {
         showToast('任務啟動失敗：' + e.message, true);
@@ -3601,6 +3630,8 @@
           }
           if (jobState.finished) {
             clearInterval(pollingIntervalId);
+            document.getElementById('job-control-bar').style.display = 'none';
+            activeJobId = null;
             resetLaunch();
           }
         } catch(e) {

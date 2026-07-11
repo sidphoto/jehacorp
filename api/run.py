@@ -7,16 +7,23 @@ for d in [current_dir, parent_dir, "/var/task"]:
 
 import json
 from lib.flask_compat import make_flask_app
-import re, time, random, threading
+import re, time, random, secrets
 from lib.core import (
     BUILTIN_AGENTS, BUILTIN_WORKFLOWS, FABLE_AUDITOR_PROMPT, SECURITY_CHECKER_PROMPT,
     get_user_md, get_user_settings, get_user_agents, get_user_workflows,
     get_llm_client, get_mock_response, extract_files_from_content,
     save_project_files, append_project, append_job_event, finish_job, save_job_state,
+    get_job_state, enqueue_job, encrypt_job_payload,
     get_user_id_from_request
 )
 
 class TokenBudgetExceeded(RuntimeError):
+    pass
+
+class JobPaused(RuntimeError):
+    pass
+
+class JobCanceled(RuntimeError):
     pass
 
 def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
@@ -24,12 +31,22 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                                single_agent, collaboration_mode="subagent", custom_openai_api_key="", custom_gemini_api_key="",
                                token_budget=100000):
     """背景 Thread 執行完整工作流，將進度寫入 KV Job State"""
+    def check_control():
+        state = get_job_state(job_id) or {}
+        control = state.get("control", "run")
+        if control == "cancel_requested":
+            raise JobCanceled("任務已由董事長取消")
+        if control == "pause_requested":
+            raise JobPaused("任務已暫停，可稍後續跑")
+
     def emit(event_data):
+        check_control()
         append_job_event(job_id, event_data)
 
     token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
     def tracked_completion(client, **kwargs):
+        check_control()
         if token_usage["total_tokens"] >= token_budget:
             raise TokenBudgetExceeded(f"任務已達 Token 預算上限 {token_budget:,}")
         response = client.chat.completions.create(**kwargs)
@@ -435,6 +452,13 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
             "message": "專案開發流程已全數跑完！總結報告已呈交，正等待董事長進行最終驗收..."
         })
 
+    except JobPaused as e:
+        state = get_job_state(job_id) or {}
+        state.update(status="paused", control="paused", finished=False)
+        state.setdefault("events", []).append({"status": "paused", "message": str(e)})
+        save_job_state(job_id, state)
+    except JobCanceled as e:
+        finish_job(job_id, {"status": "canceled", "message": str(e)})
     except TokenBudgetExceeded as e:
         finish_job(job_id, {
             "status": "budget_exceeded",
@@ -484,23 +508,30 @@ def handler(request):
     except (TypeError, ValueError):
         token_budget = 100000
 
-    # 生成唯一 job_id
-    job_id = f"job_{re.sub(r'[^a-zA-Z0-9]', '', uid[:10])}_{str(int(time.time()))}"
-    save_job_state(job_id, {"status": "running", "events": [], "finished": False})
-
-    # 在背景 Thread 執行（Vercel Function 限時 60s，背景執行適合模擬模式；真實 AI 呼叫建議用 Vercel Background Functions 或 Queue）
-    t = threading.Thread(
-        target=_run_workflow_background,
-        args=(job_id, uid, idea, workflow_type, mock_mode, meeting_mode,
-              discussion_consensus, acceptance_feedback, single_agent, collaboration_mode,
-              custom_openai_api_key, custom_gemini_api_key, token_budget),
-        daemon=True
-    )
-    t.start()
+    job_id = f"job_{re.sub(r'[^a-zA-Z0-9]', '', uid[:10])}_{int(time.time())}_{secrets.token_hex(3)}"
+    dispatch_token = secrets.token_urlsafe(24)
+    payload = {
+        "uid": uid, "idea": idea, "workflow_type": workflow_type, "mock_mode": mock_mode,
+        "meeting_mode": meeting_mode, "discussion_consensus": discussion_consensus,
+        "acceptance_feedback": acceptance_feedback, "single_agent": single_agent,
+        "collaboration_mode": collaboration_mode, "custom_openai_api_key": custom_openai_api_key,
+        "custom_gemini_api_key": custom_gemini_api_key, "token_budget": token_budget,
+    }
+    encrypted_payload = encrypt_job_payload(payload)
+    save_job_state(job_id, {
+        "job_id": job_id, "user_id": uid, "status": "queued", "control": "run",
+        "dispatch_token": dispatch_token, "encrypted_payload": encrypted_payload,
+        "events": [], "finished": False,
+    })
+    try:
+        queue_result = enqueue_job(job_id, encrypted_payload, dispatch_token)
+    except Exception:
+        save_job_state(job_id, {"job_id": job_id, "user_id": uid, "status": "queue_error", "events": [], "finished": True})
+        raise
 
     return {
         "statusCode": 200,
-        "body": json.dumps({"job_id": job_id, "message": "任務已啟動！請使用 /api/job?id= 輪詢進度。"}, ensure_ascii=False),
+        "body": json.dumps({"job_id": job_id, "queue_message_id": queue_result.get("messageId"), "message": "任務已進入可靠佇列。"}, ensure_ascii=False),
         "headers": {"Content-Type": "application/json; charset=utf-8"}
     }
 

@@ -9,6 +9,8 @@ import json
 import re
 import time
 import random
+import urllib.request
+import urllib.error
 
 # ── 嘗試載入 openai ───────────────────────────────────────────────────────────
 try:
@@ -269,6 +271,91 @@ def finish_job(job_id, final_event):
     state["status"] = "finished"
     state.setdefault("events", []).append(final_event)
     save_job_state(job_id, state)
+
+def request_job_control(job_id, user_id, action):
+    """Persist a control request after verifying job ownership."""
+    state = get_job_state(job_id)
+    if not state or state.get("user_id") != user_id:
+        return None
+    if state.get("finished"):
+        return state
+    if action == "cancel":
+        state.update(control="cancel_requested", status="canceling")
+    elif action == "pause":
+        state.update(control="pause_requested", status="pausing")
+    elif action == "resume" and state.get("status") == "paused":
+        state.update(control="run", status="queued")
+    else:
+        return state
+    save_job_state(job_id, state)
+    return state
+
+def claim_job(job_id, dispatch_token):
+    """Atomically lease a queued job. Returns state only to the single winner."""
+    key = f"job:{job_id}"
+    if _PG_URL:
+        try:
+            with _get_pg_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE kv_store
+                           SET value = jsonb_set(jsonb_set(value::jsonb, '{status}', '"running"'), '{control}', '"run"')::text,
+                               updated_at = CURRENT_TIMESTAMP
+                         WHERE key = %s
+                           AND value::jsonb->>'status' = 'queued'
+                           AND value::jsonb->>'dispatch_token' = %s
+                     RETURNING value;
+                    """, (key, dispatch_token))
+                    row = cur.fetchone()
+                    return json.loads(row[0]) if row else None
+        except Exception as exc:
+            print(f"[JOB_CLAIM_ERROR] job={job_id}, err={exc}")
+            return None
+    state = get_job_state(job_id)
+    if not state or state.get("status") != "queued" or state.get("dispatch_token") != dispatch_token:
+        return None
+    state.update(status="running", control="run")
+    save_job_state(job_id, state)
+    return state
+
+def enqueue_job(job_id, encrypted_payload, dispatch_token, suffix="start"):
+    """Publish through Vercel Queues REST API with the runtime OIDC identity."""
+    oidc = os.environ.get("VERCEL_OIDC_TOKEN", "")
+    if not oidc:
+        raise RuntimeError("VERCEL_OIDC_TOKEN is unavailable; durable queue cannot be used")
+    region = os.environ.get("VERCEL_REGION", "iad1")
+    url = f"https://{region}.vercel-queue.com/api/v3/topic/jehacorp-jobs"
+    body = json.dumps({"job_id": job_id, "payload": encrypted_payload, "dispatch_token": dispatch_token}).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {oidc}", "Content-Type": "application/json",
+        "Vqs-Retention-Seconds": "86400", "Vqs-Idempotency-Key": f"{job_id}-{suffix}",
+    }
+    deployment_id = os.environ.get("VERCEL_DEPLOYMENT_ID")
+    if deployment_id:
+        headers["Vqs-Deployment-Id"] = deployment_id
+    try:
+        request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        with urllib.request.urlopen(request, timeout=8) as response:
+            return json.loads(response.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Queue publish failed ({exc.code}): {detail[:300]}") from exc
+
+def encrypt_job_payload(payload):
+    from cryptography.fernet import Fernet
+    secret = os.environ.get("JOB_PAYLOAD_SECRET", "")
+    if not secret:
+        raise RuntimeError("JOB_PAYLOAD_SECRET is not configured")
+    raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    return Fernet(secret.encode("ascii")).encrypt(raw).decode("ascii")
+
+def decrypt_job_payload(token):
+    from cryptography.fernet import Fernet
+    secret = os.environ.get("JOB_PAYLOAD_SECRET", "")
+    if not secret:
+        raise RuntimeError("JOB_PAYLOAD_SECRET is not configured")
+    raw = Fernet(secret.encode("ascii")).decrypt(token.encode("ascii"))
+    return json.loads(raw.decode("utf-8"))
 
 
 # ── Auth 輔助 ──────────────────────────────────────────────────────────────────
