@@ -1549,6 +1549,26 @@
           </label>
         </div>
 
+        <!-- 🔑 自訂 API 金鑰折疊區塊 -->
+        <div id="custom-keys-drawer" style="display:none;margin-top:0.5rem;margin-bottom:1rem;border:1px dashed var(--card-border);padding:0.75rem;border-radius:2px;background:rgba(130,98,81,0.02);animation:collabFadeIn 0.3s ease-in-out forwards;">
+          <div style="font-weight:bold;font-size:0.78rem;color:var(--accent);margin-bottom:0.6rem;display:flex;align-items:center;gap:0.3rem;">
+            <span>🔑</span> 自訂線上版 AI 執行金鑰 (選填)
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.50rem;">
+            <div style="display:flex;flex-direction:column;gap:0.25rem;">
+              <label for="custom-openai-key" style="font-size:0.7rem;color:var(--text-muted);font-weight:600;">OpenAI API Key</label>
+              <input type="password" id="custom-openai-key" class="form-input" placeholder="留空則使用系統預設 (sk-proj-...)" style="font-size:0.78rem;padding:0.3rem 0.4rem;width:100%;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.25rem;">
+              <label for="custom-gemini-key" style="font-size:0.7rem;color:var(--text-muted);font-weight:600;">Gemini API Key</label>
+              <input type="password" id="custom-gemini-key" class="form-input" placeholder="留空則使用系統預設 (AIzaSy...)" style="font-size:0.78rem;padding:0.3rem 0.4rem;width:100%;">
+            </div>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.5rem;line-height:1.3;margin-bottom:0;">
+            * 此金鑰僅儲存在您的瀏覽器，不會上傳備份至後端資料庫，點擊派遣時將優先調用。
+          </p>
+        </div>
+
         <div style="display:flex;gap:0.5rem;width:100%;">
           <button class="btn btn-secondary" style="flex:1;background:var(--secondary);border-color:var(--secondary);color:#fff;font-size:0.85rem;" id="chat-ceo-btn">💬 與總裁商討方案</button>
           <button class="btn" style="flex:1.2;font-size:0.85rem;" id="launch-btn">派遣團隊執行任務 ⚡</button>
@@ -2258,6 +2278,34 @@
             card.classList.add('active');
             updateCollabExplainPanel(mode);
           });
+        // 🔑 初始化自訂金鑰 UI 與事件綁定
+        const mockToggle = document.getElementById('mock-toggle');
+        const customKeysDrawer = document.getElementById('custom-keys-drawer');
+        const customOpenaiInput = document.getElementById('custom-openai-key');
+        const customGeminiInput = document.getElementById('custom-gemini-key');
+
+        // 回填本地儲存的金鑰
+        customOpenaiInput.value = localStorage.getItem('custom_openai_key') || '';
+        customGeminiInput.value = localStorage.getItem('custom_gemini_key') || '';
+
+        // 智慧控制顯示
+        const updateKeysDrawerVisibility = () => {
+          if (mockToggle.checked) {
+            customKeysDrawer.style.display = 'none';
+          } else {
+            customKeysDrawer.style.display = 'block';
+          }
+        };
+        updateKeysDrawerVisibility();
+
+        mockToggle.addEventListener('change', updateKeysDrawerVisibility);
+
+        // 綁定輸入即時保存
+        customOpenaiInput.addEventListener('input', () => {
+          localStorage.setItem('custom_openai_key', customOpenaiInput.value.trim());
+        });
+        customGeminiInput.addEventListener('input', () => {
+          localStorage.setItem('custom_gemini_key', customGeminiInput.value.trim());
         });
 
       } catch (e) {
@@ -3026,12 +3074,17 @@
 
       // 1. POST /api/run 啟動任務，取得 job_id
       const meetingMode = (currentCollabMode === 'teams');
+      const customOpenai = document.getElementById('custom-openai-key').value.trim();
+      const customGemini = document.getElementById('custom-gemini-key').value.trim();
+
       let pollingPayload = { 
         idea, 
         mock: mock === 'true', 
         workflow: wfId, 
         meeting: meetingMode,
-        collaboration_mode: currentCollabMode 
+        collaboration_mode: currentCollabMode,
+        custom_openai_api_key: customOpenai,
+        custom_gemini_api_key: customGemini
       };
       if (consensus) pollingPayload.discussion = consensus;
       if (feedback) pollingPayload.feedback = feedback;

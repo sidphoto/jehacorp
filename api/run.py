@@ -18,7 +18,7 @@ from lib.core import (
 
 def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                                meeting_mode, discussion_consensus, acceptance_feedback,
-                               single_agent, collaboration_mode="subagent"):
+                               single_agent, collaboration_mode="subagent", custom_openai_api_key="", custom_gemini_api_key=""):
     """背景 Thread 執行完整工作流，將進度寫入 KV Job State"""
     def emit(event_data):
         append_job_event(job_id, event_data)
@@ -26,6 +26,12 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
     try:
         user_md = get_user_md(uid)
         user_settings = get_user_settings(uid)
+        if custom_openai_api_key:
+            user_settings["openai_api_key"] = custom_openai_api_key
+        if custom_gemini_api_key:
+            user_settings["gemini_api_key"] = custom_gemini_api_key
+        if custom_openai_api_key or custom_gemini_api_key:
+            user_settings["subscription"] = "pro"
         is_pro = user_settings.get("subscription") == "pro"
         api_keys = user_settings if is_pro else None
 
@@ -422,6 +428,8 @@ def handler(request):
     acceptance_feedback = body.get("feedback", "").strip()
     single_agent = body.get("single_agent", False)
     collaboration_mode = body.get("collaboration_mode", "subagent").strip()
+    custom_openai_api_key = body.get("custom_openai_api_key", "").strip()
+    custom_gemini_api_key = body.get("custom_gemini_api_key", "").strip()
 
     # 生成唯一 job_id
     job_id = f"job_{re.sub(r'[^a-zA-Z0-9]', '', uid[:10])}_{str(int(time.time()))}"
@@ -431,7 +439,8 @@ def handler(request):
     t = threading.Thread(
         target=_run_workflow_background,
         args=(job_id, uid, idea, workflow_type, mock_mode, meeting_mode,
-              discussion_consensus, acceptance_feedback, single_agent, collaboration_mode),
+              discussion_consensus, acceptance_feedback, single_agent, collaboration_mode,
+              custom_openai_api_key, custom_gemini_api_key),
         daemon=True
     )
     t.start()

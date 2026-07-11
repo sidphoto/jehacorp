@@ -475,7 +475,7 @@ def get_user_id_from_headers(headers):
     return None
 
 # 核心派遣引擎：整合 SSE 流水線、背景定時派工、決策共識與董事長驗收退回修正機制、單兵指派與總裁動態協同
-def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=None, meeting_mode=False, discussion_consensus="", acceptance_feedback="", single_agent=False, collaboration_mode="subagent"):
+def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=None, meeting_mode=False, discussion_consensus="", acceptance_feedback="", single_agent=False, collaboration_mode="subagent", custom_openai_api_key="", custom_gemini_api_key=""):
     def log(event_data):
         if sse_emitter:
             sse_emitter(event_data)
@@ -483,6 +483,12 @@ def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=
     try:
         user_md = get_user_md_content(user_id)
         user_settings = load_user_settings(user_id)
+        if custom_openai_api_key:
+            user_settings["openai_api_key"] = custom_openai_api_key
+        if custom_gemini_api_key:
+            user_settings["gemini_api_key"] = custom_gemini_api_key
+        if custom_openai_api_key or custom_gemini_api_key:
+            user_settings["subscription"] = "pro"
         is_pro = user_settings.get("subscription") == "pro"
 
         # 1. 取得工作流配置
@@ -1249,7 +1255,9 @@ class AgencyHandler(SimpleHTTPRequestHandler):
                 discussion_consensus=discussion_consensus,
                 acceptance_feedback=acceptance_feedback,
                 single_agent=single_agent,
-                collaboration_mode=collaboration_mode
+                collaboration_mode=collaboration_mode,
+                custom_openai_api_key="",
+                custom_gemini_api_key=""
             )
             return
 
@@ -1414,6 +1422,8 @@ class AgencyHandler(SimpleHTTPRequestHandler):
             acceptance_feedback = body.get("feedback", "").strip()
             single_agent = body.get("single_agent", False)
             collaboration_mode = body.get("collaboration_mode", "subagent").strip()
+            custom_openai_api_key = body.get("custom_openai_api_key", "").strip()
+            custom_gemini_api_key = body.get("custom_gemini_api_key", "").strip()
 
             # 生成唯一 job_id 并初始化 state
             from lib.core import save_job_state
@@ -1443,7 +1453,9 @@ class AgencyHandler(SimpleHTTPRequestHandler):
                     "discussion_consensus": discussion_consensus,
                     "acceptance_feedback": acceptance_feedback,
                     "single_agent": single_agent,
-                    "collaboration_mode": collaboration_mode
+                    "collaboration_mode": collaboration_mode,
+                    "custom_openai_api_key": custom_openai_api_key,
+                    "custom_gemini_api_key": custom_gemini_api_key
                 },
                 daemon=True
             )
