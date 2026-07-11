@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>JehaCrop 一人公司多代理人團隊協同 App</title>
+  <title>JehaCorp — 總裁 AI 協同指揮中心</title>
   <meta name="description" content="日式極簡禪意美學與 Fable 紀律審核之多代理人自建協同開發系統">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#415058">
@@ -1451,6 +1451,198 @@
     @media (max-width: 480px) {
       .desktop-only { display: none; }
     }
+
+    /* Command Center redesign — desktop-first operational workspace */
+    .header-system-status { display: none; }
+    .command-rail { display: none; }
+
+    @media (min-width: 980px) {
+      body { background: var(--bg-color); }
+
+      .app-header {
+        min-height: 76px;
+        padding: 0 2rem 0 17.5rem;
+        box-shadow: none;
+      }
+
+      .app-logo-text { font-size: 1.35rem; }
+      .app-logo-icon { font-size: 1.25rem; }
+      .header-system-status {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-right: auto;
+        margin-left: 2rem;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+      }
+      .header-system-status::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--color-success);
+      }
+
+      .app-content {
+        max-width: none;
+        margin: 0 0 0 15rem;
+        padding: 2rem;
+        padding-bottom: 2rem;
+      }
+
+      .bottom-nav {
+        top: 0;
+        bottom: auto;
+        left: 0;
+        width: 15rem;
+        height: 100vh;
+        padding: 1.4rem 0.8rem;
+        border-top: none;
+        border-right: 1px solid var(--card-border);
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 0.35rem;
+      }
+      .bottom-nav::before {
+        content: 'JEHACORP';
+        width: 100%;
+        padding: 0 0.85rem 1.15rem;
+        margin-bottom: 0.4rem;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--card-border);
+        font-family: var(--font-title);
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+      .nav-item {
+        flex: 0 0 auto;
+        width: 100%;
+        min-height: 46px;
+        padding: 0.55rem 0.75rem;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 0.8rem;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        font-size: 0.83rem;
+        text-align: left;
+      }
+      .nav-item.active {
+        background: var(--primary-glow);
+        border-color: var(--card-border);
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .nav-item-icon { font-size: 1rem; width: 1.25rem; text-align: center; }
+      .nav-item.active .nav-item-icon { transform: none; }
+
+      #panel-desk.active {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 19rem;
+        column-gap: 1.5rem;
+        align-items: start;
+      }
+      #desk-input-card, #panel-desk > .desk-layout, #terminal-card,
+      #cron-container, #saved-tools-card { grid-column: 1; }
+      #desk-input-card {
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        border-top: 2px solid var(--primary);
+      }
+      #panel-desk > .desk-layout { display: block; }
+      #panel-desk > .desk-layout > .card { margin-bottom: 1.25rem; }
+
+      .command-rail {
+        display: flex;
+        grid-column: 2;
+        grid-row: 1 / span 4;
+        position: sticky;
+        top: 96px;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      .rail-section {
+        border-top: 1px solid var(--card-border);
+        padding-top: 1rem;
+      }
+      .rail-section:first-child { border-top: 2px solid var(--primary); }
+      .rail-heading {
+        color: var(--text-main);
+        font-size: 0.88rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+      }
+      .rail-subheading {
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.85rem;
+      }
+      .rail-mission {
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid var(--card-border);
+      }
+      .rail-mission-title { font-size: 0.84rem; font-weight: 700; line-height: 1.45; }
+      .rail-status { color: var(--text-muted); font-size: 0.72rem; margin-top: 0.25rem; }
+      .exception-item {
+        display: grid;
+        grid-template-columns: 1.2rem 1fr;
+        gap: 0.55rem;
+        padding: 0.75rem 0;
+        border-top: 1px solid var(--card-border);
+      }
+      .exception-item:first-of-type { border-top: none; }
+      .exception-mark { color: var(--color-processing); font-weight: 700; }
+      .exception-title { font-size: 0.76rem; font-weight: 700; line-height: 1.4; }
+      .exception-copy { color: var(--text-muted); font-size: 0.7rem; line-height: 1.5; margin-top: 0.2rem; }
+      .rail-link {
+        appearance: none;
+        width: 100%;
+        padding: 0.65rem 0;
+        border: 0;
+        border-top: 1px solid var(--card-border);
+        background: transparent;
+        color: var(--primary);
+        cursor: pointer;
+        text-align: left;
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+      .budget-line { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.78rem; }
+      .budget-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+      .budget-meter { height: 6px; background: var(--card-border); margin: 0.65rem 0 0.45rem; overflow: hidden; }
+      .budget-meter > span { display: block; width: 32%; height: 100%; background: var(--primary); }
+      .budget-note { color: var(--text-muted); font-size: 0.68rem; }
+
+      .command-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.8rem; }
+      .command-title-row .card-title { margin-bottom: 0; font-size: 1.22rem; }
+      .command-title-row .command-caption { color: var(--text-muted); font-size: 0.7rem; }
+      #idea-input { height: 132px; font-size: 0.95rem; padding: 1rem; }
+      #workflow-select-group { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 0.9rem; align-items: center; }
+      #workflow-select-group .form-label { margin: 0; }
+      #workflow-select-group .form-select { margin: 0; }
+      .collab-mode-container { max-width: 520px; }
+      .collab-mode-card { padding: 0.65rem 0.5rem !important; }
+      #collab-explain-panel { min-height: auto !important; margin-bottom: 0.7rem !important; }
+      .desk-options { flex-direction: row !important; align-items: center; justify-content: space-between; }
+      #custom-keys-drawer { max-width: 680px; }
+
+      #pipeline-card { padding: 1.5rem; }
+      #dispatch-progress-container { padding: 0.85rem !important; }
+      .pipeline-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+        gap: 0.55rem;
+      }
+      .pipeline-task-card { min-height: 144px; padding: 0.75rem; }
+      .pipeline-desc { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+      .pipeline-feedback { font-size: 0.65rem; }
+      .cluster-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      #cron-container, #saved-tools-card { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -1459,7 +1651,7 @@
   <section class="auth-overlay" id="auth-overlay">
     <div class="auth-card">
       <div class="auth-logo">🥋</div>
-      <h1 class="auth-title">JehaCrop</h1>
+      <h1 class="auth-title">JehaCorp</h1>
       <p class="auth-subtitle">你。即是總裁 — 多代理人協同系統</p>
       
       <div class="auth-input-group">
@@ -1483,8 +1675,9 @@
   <header class="app-header">
     <div class="app-logo">
       <span class="app-logo-icon">🏯</span>
-      <span class="app-logo-text">JehaCrop</span>
+      <span class="app-logo-text">JehaCorp</span>
     </div>
+    <div class="header-system-status">系統正常運行中</div>
     <div class="header-actions">
       <button class="theme-toggle-btn" id="theme-toggle-btn" title="切換禪風色彩">🌗</button>
       <button class="btn btn-secondary" id="settings-btn" style="width:auto;padding:0.25rem 0.5rem;font-size:0.75rem;display:flex;align-items:center;gap:0.25rem;border-radius:2px;" title="系統設置">
@@ -1506,11 +1699,14 @@
     <section class="panel active" id="panel-desk">
       <!-- 專案輸入卡片 -->
       <div class="card" id="desk-input-card">
-        <h2 class="card-title">💡 派遣協同小組</h2>
-        <textarea class="input-textarea" id="idea-input" placeholder="例如：規劃越南市場營養品合約與資安架構..."></textarea>
+        <div class="command-title-row">
+          <h2 class="card-title">發佈新指令</h2>
+          <span class="command-caption">Mission Composer</span>
+        </div>
+        <textarea class="input-textarea" id="idea-input" placeholder="描述你要達成的目標、交付成果與限制。例如：規劃越南市場營養品合約與資安架構..."></textarea>
         
         <div class="form-group" id="workflow-select-group">
-          <label class="form-label" for="workflow-select">選擇執行的虛擬團隊 (工作流)</label>
+          <label class="form-label" for="workflow-select">執行團隊<br><span style="font-weight:400;opacity:.8">Mission team</span></label>
           <select class="form-select" id="workflow-select">
             <!-- 動態載入 -->
           </select>
@@ -1571,9 +1767,41 @@
 
         <div style="display:flex;gap:0.5rem;width:100%;">
           <button class="btn btn-secondary" style="flex:1;background:var(--secondary);border-color:var(--secondary);color:#fff;font-size:0.85rem;" id="chat-ceo-btn">💬 與總裁商討方案</button>
-          <button class="btn" style="flex:1.2;font-size:0.85rem;" id="launch-btn">派遣團隊執行任務 ⚡</button>
+          <button class="btn" style="flex:1.2;font-size:0.85rem;" id="launch-btn">立即派遣任務</button>
         </div>
       </div>
+
+      <aside class="command-rail" aria-label="指揮中心狀態">
+        <section class="rail-section">
+          <div class="rail-heading">目前任務</div>
+          <div class="rail-subheading">CURRENT MISSION</div>
+          <div class="rail-mission">
+            <div class="rail-mission-title" id="rail-mission-name">尚未派遣新任務</div>
+            <div class="rail-status" id="rail-mission-state">等待董事長指令</div>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="rail-heading">例外事項</div>
+          <div class="rail-subheading">NEEDS CHAIRMAN DECISION</div>
+          <div class="exception-item">
+            <div class="exception-mark">!</div>
+            <div>
+              <div class="exception-title">尚無需處理的例外</div>
+              <div class="exception-copy">當預算、審核或任務阻塞需要你決定時，會顯示在這裡。</div>
+            </div>
+          </div>
+          <button class="rail-link" id="rail-view-logs-btn">查看執行紀錄 →</button>
+        </section>
+
+        <section class="rail-section">
+          <div class="rail-heading">今日 Token 預算</div>
+          <div class="rail-subheading">TODAY'S TOKEN BUDGET</div>
+          <div class="budget-line"><span>已使用</span><span class="budget-value">320K / 1.00M</span></div>
+          <div class="budget-meter"><span></span></div>
+          <div class="budget-note">剩餘 680K Tokens · 預算設定 →</div>
+        </section>
+      </aside>
 
       <!-- 雙欄 RWD 狀態區 -->
       <div class="desk-layout">
@@ -1952,19 +2180,19 @@
   <nav class="bottom-nav">
     <button class="nav-item active" data-panel="desk">
       <span class="nav-item-icon">🏛️</span>
-      <span>辦公室</span>
+      <span>指揮中心</span>
     </button>
     <button class="nav-item" data-panel="staff">
       <span class="nav-item-icon">👥</span>
-      <span>名冊</span>
+      <span>AI 團隊</span>
     </button>
     <button class="nav-item" data-panel="teams">
       <span class="nav-item-icon">📋</span>
-      <span>看板</span>
+      <span>任務模板</span>
     </button>
     <button class="nav-item" data-panel="archives">
       <span class="nav-item-icon">📁</span>
-      <span>檔案櫃</span>
+      <span>報告檔案</span>
     </button>
   </nav>
 
@@ -2269,6 +2497,7 @@
           setTimeout(() => {
             syncWithGDrive();
           }, 1000);
+        }
         // 初始化 AI 協作模式面板與事件綁定
         updateCollabExplainPanel('subagent');
         document.querySelectorAll('.collab-mode-card').forEach(card => {
@@ -2278,6 +2507,7 @@
             card.classList.add('active');
             updateCollabExplainPanel(mode);
           });
+        });
         // 🔑 初始化自訂金鑰 UI 與事件綁定
         const mockToggle = document.getElementById('mock-toggle');
         const customKeysDrawer = document.getElementById('custom-keys-drawer');
@@ -2856,6 +3086,14 @@
     const pipelineCard = document.getElementById('pipeline-card');
     const clusterCard = document.getElementById('cluster-card');
     const terminalCard = document.getElementById('terminal-card');
+    const railViewLogsBtn = document.getElementById('rail-view-logs-btn');
+
+    if (railViewLogsBtn) {
+      railViewLogsBtn.addEventListener('click', () => {
+        terminalCard.style.display = 'block';
+        terminalCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
     
     // 🏮 推拉門式成果抽屜控制
     const resultsDrawer = document.getElementById('results-drawer');
@@ -3001,12 +3239,19 @@
         return;
       }
 
+      if (!singleAgent) {
+        const railMissionName = document.getElementById('rail-mission-name');
+        const railMissionState = document.getElementById('rail-mission-state');
+        if (railMissionName) railMissionName.textContent = idea;
+        if (railMissionState) railMissionState.textContent = '小組正在建立專案簡報';
+      }
+
       // 隱藏驗收卡片
       document.getElementById('acceptance-card').style.display = 'none';
 
       // 鎖定派遣按鈕
       launchBtn.disabled = true;
-      launchBtn.textContent = '協作會議進行中...';
+      launchBtn.textContent = '正在派遣任務…';
       
       // 顯示監控面板與終端日誌
       pipelineCard.style.display = 'block';
@@ -3187,6 +3432,8 @@
             </ul>
           `;
           acceptanceCard.style.display = 'block';
+          const railMissionState = document.getElementById('rail-mission-state');
+          if (railMissionState) railMissionState.textContent = '等待董事長最終驗收';
           acceptanceCard.scrollIntoView({ behavior: 'smooth' });
           document.getElementById('acceptance-reject-form').style.display = 'none';
           document.getElementById('acceptance-feedback-input').value = '';
@@ -3251,7 +3498,7 @@
 
     function resetLaunch() {
       launchBtn.disabled = false;
-      launchBtn.textContent = '派遣團隊執行任務 ⚡';
+      launchBtn.textContent = '立即派遣任務';
       if (sseSource) sseSource.close();
     }
 
