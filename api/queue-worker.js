@@ -12,7 +12,7 @@ export default handleCallback(async (message) => {
     throw new Error(`Python worker failed: ${response.status} ${await response.text()}`);
   }
 }, {
-  visibilityTimeoutSeconds: 900,
+  visibilityTimeoutSeconds: 300,
   retry: (_error, metadata) => metadata.deliveryCount > 3
     ? { acknowledge: true }
     : { afterSeconds: Math.min(300, 15 * (2 ** metadata.deliveryCount)) },

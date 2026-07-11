@@ -1,9 +1,9 @@
 {
   "version": 2,
   "functions": {
-    "api/worker.py": { "maxDuration": 800 },
+    "api/worker.py": { "maxDuration": 300 },
     "api/queue-worker.js": {
-      "maxDuration": 900,
+      "maxDuration": 300,
       "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "jehacorp-jobs", "retryAfterSeconds": 30 }]
     }
   },
