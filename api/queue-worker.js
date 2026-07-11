@@ -1,7 +1,7 @@
 import { handleCallback } from '@vercel/queue';
 
 export default handleCallback(async (message) => {
-  const host = process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
   if (!host) throw new Error('VERCEL_URL is unavailable');
   const response = await fetch(`https://${host}/api/worker`, {
     method: 'POST',

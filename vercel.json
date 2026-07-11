@@ -12,6 +12,7 @@
     { "src": "/api/agents", "dest": "/api/agents.py" },
     { "src": "/api/workflows", "dest": "/api/workflows.py" },
     { "src": "/api/run", "dest": "/api/run.py" },
+    { "src": "/api/enqueue", "dest": "/api/enqueue.js" },
     { "src": "/api/worker", "dest": "/api/worker.py" },
     { "src": "/api/job", "dest": "/api/job.py" },
     { "src": "/api/history", "dest": "/api/history.py" },

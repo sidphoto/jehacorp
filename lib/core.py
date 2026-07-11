@@ -319,27 +319,24 @@ def claim_job(job_id, dispatch_token):
     return state
 
 def enqueue_job(job_id, encrypted_payload, dispatch_token, suffix="start"):
-    """Publish through Vercel Queues REST API with the runtime OIDC identity."""
-    oidc = os.environ.get("VERCEL_OIDC_TOKEN", "")
-    if not oidc:
-        raise RuntimeError("VERCEL_OIDC_TOKEN is unavailable; durable queue cannot be used")
-    region = os.environ.get("VERCEL_REGION", "iad1")
-    url = f"https://{region}.vercel-queue.com/api/v3/topic/jehacorp-jobs"
+    """Ask the private Node bridge to publish with the official Queue SDK."""
+    secret = os.environ.get("JOB_PAYLOAD_SECRET", "")
+    host = os.environ.get("VERCEL_PROJECT_PRODUCTION_URL") or os.environ.get("VERCEL_URL")
+    if not secret or not host:
+        raise RuntimeError("Queue dispatch environment is unavailable")
+    url = f"https://{host}/api/enqueue"
     body = json.dumps({"job_id": job_id, "payload": encrypted_payload, "dispatch_token": dispatch_token}).encode("utf-8")
     headers = {
-        "Authorization": f"Bearer {oidc}", "Content-Type": "application/json",
-        "Vqs-Retention-Seconds": "86400", "Vqs-Idempotency-Key": f"{job_id}-{suffix}",
+        "Content-Type": "application/json", "X-Queue-Dispatch-Secret": secret,
+        "X-Queue-Idempotency-Key": f"{job_id}-{suffix}",
     }
-    deployment_id = os.environ.get("VERCEL_DEPLOYMENT_ID")
-    if deployment_id:
-        headers["Vqs-Deployment-Id"] = deployment_id
     try:
         request = urllib.request.Request(url, data=body, headers=headers, method="POST")
         with urllib.request.urlopen(request, timeout=8) as response:
             return json.loads(response.read().decode("utf-8") or "{}")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Queue publish failed ({exc.code}): {detail[:300]}") from exc
+        raise RuntimeError(f"Queue bridge failed ({exc.code}): {detail[:300]}") from exc
 
 def encrypt_job_payload(payload):
     from cryptography.fernet import Fernet
