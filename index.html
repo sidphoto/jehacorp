@@ -1641,7 +1641,20 @@
       .pipeline-desc { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
       .pipeline-feedback { font-size: 0.65rem; }
       .cluster-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-      #cron-container, #saved-tools-card { display: none; }
+      .advanced-options {
+        margin: 1rem 0;
+        border-top: 1px solid var(--card-border);
+        border-bottom: 1px solid var(--card-border);
+        padding: 0.7rem 0;
+      }
+      .advanced-options > summary {
+        cursor: pointer;
+        color: var(--primary);
+        font-size: 0.8rem;
+        font-weight: 700;
+        list-style-position: inside;
+      }
+      .advanced-options[open] > summary { margin-bottom: 0.9rem; }
     }
   </style>
 </head>
@@ -1712,6 +1725,8 @@
           </select>
         </div>
 
+        <details class="advanced-options">
+          <summary>進階設定：協作方式、預算與 API 金鑰</summary>
         <div class="form-group" style="margin-bottom:1rem;">
           <label class="form-label" style="font-weight:bold;margin-bottom:0.4rem;display:block;">選擇 AI 協作模式</label>
           <div class="collab-mode-container" style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
@@ -1727,8 +1742,8 @@
             </div>
             <div class="collab-mode-card" data-mode="dynamic" style="flex:1;padding:0.75rem 0.5rem;border:1px solid var(--card-border);border-radius:2px;cursor:pointer;text-align:center;transition:var(--transition);">
               <div style="font-size:1.3rem;margin-bottom:0.25rem;">⚡</div>
-              <div style="font-size:0.78rem;font-weight:bold;">Dynamic</div>
-              <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.1rem;">動態工作流</div>
+              <div style="font-size:0.78rem;font-weight:bold;">Auto Team</div>
+              <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.1rem;">固定五人 Beta</div>
             </div>
           </div>
           
@@ -1742,6 +1757,10 @@
           <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);font-weight:600;cursor:pointer;">
             <input type="checkbox" id="mock-toggle" style="width:14px;height:14px;accent-color:var(--primary)" checked>
             啟用模擬測試模式 (免 API 金鑰)
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.78rem;color:var(--text-muted);font-weight:600;">
+            任務 Token 上限
+            <input type="number" id="token-budget-input" min="10000" max="2000000" step="10000" value="100000" class="form-input" style="width:120px;padding:0.35rem 0.5rem;font-size:0.78rem;">
           </label>
         </div>
 
@@ -1764,6 +1783,7 @@
             * 此金鑰僅儲存在您的瀏覽器，不會上傳備份至後端資料庫，點擊派遣時將優先調用。
           </p>
         </div>
+        </details>
 
         <div style="display:flex;gap:0.5rem;width:100%;">
           <button class="btn btn-secondary" style="flex:1;background:var(--secondary);border-color:var(--secondary);color:#fff;font-size:0.85rem;" id="chat-ceo-btn">💬 與總裁商討方案</button>
@@ -1784,6 +1804,7 @@
         <section class="rail-section">
           <div class="rail-heading">例外事項</div>
           <div class="rail-subheading">NEEDS CHAIRMAN DECISION</div>
+          <div id="exception-list">
           <div class="exception-item">
             <div class="exception-mark">!</div>
             <div>
@@ -1791,15 +1812,16 @@
               <div class="exception-copy">當預算、審核或任務阻塞需要你決定時，會顯示在這裡。</div>
             </div>
           </div>
+          </div>
           <button class="rail-link" id="rail-view-logs-btn">查看執行紀錄 →</button>
         </section>
 
         <section class="rail-section">
-          <div class="rail-heading">今日 Token 預算</div>
-          <div class="rail-subheading">TODAY'S TOKEN BUDGET</div>
-          <div class="budget-line"><span>已使用</span><span class="budget-value">320K / 1.00M</span></div>
-          <div class="budget-meter"><span></span></div>
-          <div class="budget-note">剩餘 680K Tokens · 預算設定 →</div>
+          <div class="rail-heading">本次任務 Token 預算</div>
+          <div class="rail-subheading">MISSION TOKEN BUDGET</div>
+          <div class="budget-line"><span>已使用</span><span class="budget-value" id="token-budget-value">0 / 100K</span></div>
+          <div class="budget-meter"><span id="token-budget-meter" style="width:0%"></span></div>
+          <div class="budget-note" id="token-budget-note">尚未開始計量</div>
         </section>
       </aside>
 
@@ -1934,7 +1956,18 @@
       </div>
     </section>
 
-    <!-- 2. 👥 員工名冊 Staff Panel -->
+    <!-- 2. ⚙️ 營運中心：排程與工具資產 -->
+    <section class="panel" id="panel-operations">
+      <div class="staff-header">
+        <div>
+          <h2 style="font-family:var(--font-title);font-weight:700;font-size:1.15rem;">⚙️ 營運中心</h2>
+          <p style="font-size:0.76rem;color:var(--text-muted);margin-top:0.2rem;">集中管理排程、自動派遣與已收藏工具。</p>
+        </div>
+      </div>
+      <div id="operations-content"></div>
+    </section>
+
+    <!-- 3. 👥 員工名冊 Staff Panel -->
     <section class="panel" id="panel-staff">
       <div class="staff-header">
         <h2 style="font-family:var(--font-title);font-weight:700;font-size:1.15rem;">👥 虛擬員工名冊</h2>
@@ -2190,6 +2223,10 @@
       <span class="nav-item-icon">📋</span>
       <span>任務模板</span>
     </button>
+    <button class="nav-item" data-panel="operations">
+      <span class="nav-item-icon">⚙️</span>
+      <span>營運中心</span>
+    </button>
     <button class="nav-item" data-panel="archives">
       <span class="nav-item-icon">📁</span>
       <span>報告檔案</span>
@@ -2334,6 +2371,60 @@
     let pipelineTasks = [];
     let clusterWorkers = [];
     let tickTimer = null;
+    const activeExceptions = new Map();
+
+    function formatTokenCount(value) {
+      const n = Number(value || 0);
+      if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`;
+      if (n >= 1000) return `${Math.round(n / 1000)}K`;
+      return `${n}`;
+    }
+
+    function renderTokenUsage(usage = {}, budget = 100000) {
+      const used = Number(usage.total_tokens || 0);
+      const limit = Math.max(1, Number(budget || 100000));
+      const percent = Math.min(100, Math.round((used / limit) * 100));
+      const value = document.getElementById('token-budget-value');
+      const meter = document.getElementById('token-budget-meter');
+      const note = document.getElementById('token-budget-note');
+      if (value) value.textContent = `${formatTokenCount(used)} / ${formatTokenCount(limit)}`;
+      if (meter) meter.style.width = `${percent}%`;
+      if (note) note.textContent = `剩餘 ${formatTokenCount(Math.max(0, limit - used))} Tokens · 已使用 ${percent}%`;
+    }
+
+    function renderExceptions() {
+      const container = document.getElementById('exception-list');
+      if (!container) return;
+      if (activeExceptions.size === 0) {
+        container.innerHTML = `<div class="exception-item"><div class="exception-mark">✓</div><div><div class="exception-title">尚無需處理的例外</div><div class="exception-copy">預算、審核或任務阻塞需要你決定時，會顯示在這裡。</div></div></div>`;
+        return;
+      }
+      container.innerHTML = [...activeExceptions.entries()].map(([key, item]) => `
+        <div class="exception-item">
+          <div class="exception-mark">!</div>
+          <div>
+            <div class="exception-title">${escapeHtml(item.title)}</div>
+            <div class="exception-copy">${escapeHtml(item.detail)}</div>
+            <button class="rail-link" type="button" onclick="focusException('${key}')">查看並處理 →</button>
+          </div>
+        </div>`).join('');
+    }
+
+    window.focusException = function(key) {
+      const item = activeExceptions.get(key);
+      const target = item?.agentId ? document.getElementById(`task-card-${item.agentId}`) : document.getElementById('terminal-card');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    function setException(key, title, detail, agentId = '') {
+      activeExceptions.set(key, { title, detail, agentId });
+      renderExceptions();
+    }
+
+    function clearException(key) {
+      activeExceptions.delete(key);
+      renderExceptions();
+    }
 
     // AI 協作模式全域狀態與說明資料
     let currentCollabMode = 'subagent';
@@ -2355,14 +2446,20 @@
         feature: "適合處理高度協作與動態對齊的任務，但因為包含群組內反覆討論、重複載入工具與提示詞設定，API 費用會大幅暴增，三個 Agent 一起跑的花費可能是一個 Agent 的好幾倍。"
       },
       dynamic: {
-        title: "⚡ Dynamic Workflows (動態工作流模式)",
-        logic: "這是最新、最先進的等級，您甚至不需要手動為 AI 組建團隊。您只需要管好最終目標，主控 AI 就會自動規劃一份分工計劃，並在後台一口氣召喚數十、甚至上千個分身平行運作，完成後自己進行驗收，最後才將成果交付給您。",
-        analogy: "主管只交代「一週內上線新產品」，下屬自動分工成 10 個小組，各小組又自動衍生 100 個助理，互相鎖定章節開發，最後自己整合出完美產品回報主管。",
-        scene: "超大規模、能完全拆開來做的任務。最典型的例子是深度研究報告生成。例如 AI 在查到一半時發現新方向，可以自動擴充並決定要查詢哪些子主題，彈性極高。",
-        notScene: "流程非常固定、變動很明確、不需靈活調整的自動化任務（此時直接用一般的自動化流程如 N8N 反而更快、更有效率）。",
-        feature: "之所以能開這麼多 Agent 卻不卡頓，是因為那份分工計劃是存在程式的變數中，不會持續佔用模型的上下文容量（腦容量）。"
+        title: "⚡ Auto Team Beta (固定五人自動組隊)",
+        logic: "目前 Beta 版會由系統自動選用固定五人團隊，依序完成原型、前端、後端、成長與現實檢驗；尚未啟用任意擴張或真正平行調度。",
+        analogy: "主管只交代目標，系統自動找齊既定的五位專家，依排定順序接力完成工作。",
+        scene: "不想手動挑選工作流，但願意使用平台預設五人小組的綜合型專案。",
+        notScene: "需要大量平行 Agent、自由增加成員或嚴格控制每個角色的任務。",
+        feature: "免選團隊、固定五人、循序執行；功能仍為 Beta。"
       }
     };
+
+    const operationsContent = document.getElementById('operations-content');
+    ['cron-container', 'saved-tools-card'].forEach(id => {
+      const node = document.getElementById(id);
+      if (node && operationsContent) operationsContent.appendChild(node);
+    });
 
     // 深淺色彩切換
     const themeBtn = document.getElementById('theme-toggle-btn');
@@ -3239,6 +3336,11 @@
         return;
       }
 
+      const tokenBudget = Math.max(10000, Math.min(2000000, Number(document.getElementById('token-budget-input')?.value || 100000)));
+      activeExceptions.clear();
+      renderExceptions();
+      renderTokenUsage({}, tokenBudget);
+
       if (!singleAgent) {
         const railMissionName = document.getElementById('rail-mission-name');
         const railMissionState = document.getElementById('rail-mission-state');
@@ -3358,6 +3460,7 @@
         workflow: wfId, 
         meeting: meetingMode,
         collaboration_mode: currentCollabMode,
+        token_budget: tokenBudget,
         custom_openai_api_key: customOpenai,
         custom_gemini_api_key: customGemini
       };
@@ -3371,9 +3474,20 @@
       
       // 處理單一事件 (共用邏輯，與原 SSE onmessage 相同)
       function handleJobEvent(data) {
-        if (data.status === 'error') {
+        if (data.status === 'token_usage') {
+          renderTokenUsage(data.usage, data.token_budget);
+          addTerminalLog(`[Token] 已使用 ${formatTokenCount(data.usage?.total_tokens)} / ${formatTokenCount(data.token_budget)}`, 'info');
+        } else if (data.status === 'budget_exceeded') {
+          renderTokenUsage(data.token_usage, data.token_budget);
+          setException('token-budget', 'Token 預算已達上限', data.error || data.message || '任務已安全停止。');
+          const railMissionState = document.getElementById('rail-mission-state');
+          if (railMissionState) railMissionState.textContent = '已因預算上限安全停止';
+          showToast(data.message || 'Token 預算已達上限', true);
+          addTerminalLog(`[預算熔斷] ${data.error || data.message}`, 'error');
+        } else if (data.status === 'error') {
           showToast(data.error, true);
           addTerminalLog(`[執行錯誤] ${data.error}`, 'error');
+          setException('runtime-error', '任務執行錯誤', data.error || '未知錯誤');
           resetLaunch();
           if (pollingIntervalId) clearInterval(pollingIntervalId);
         } else if (data.status === 'thinking') {
@@ -3405,6 +3519,7 @@
           updateTaskState(data.agent_id, { status: 'fable_rejected', progress: 0, retryCount: data.retry_count, fableFeedback: data.fable_feedback });
           setAuditorStatus('idle');
           addTerminalLog(`[Review 退回] ❌ 總裁 Code Review 未通過！原因：${data.fable_feedback}`, 'error');
+          setException(`fable-${data.agent_id}`, `${data.agent_name || data.agent_id} 審查未通過`, data.fable_feedback || '等待重新產出', data.agent_id);
         } else if (data.status === 'security_auditing') {
           updateTaskState(data.agent_id, { status: 'security_auditing', progress: 92 });
           addTerminalLog(`[資安掃描] 🛡️ 總裁進行 OWASP Top 10 資安合規漏洞檢測審查中...`, 'warning');
@@ -3412,12 +3527,16 @@
         } else if (data.status === 'security_rejected') {
           updateTaskState(data.agent_id, { status: 'security_rejected', progress: 0, retryCount: data.retry_count, fableFeedback: data.security_feedback });
           addTerminalLog(`[資安退回] ❌ 總裁資安 Review 拒絕！偵測到高危漏洞。原因：${data.security_feedback}`, 'error');
+          setException(`security-${data.agent_id}`, `${data.agent_name || data.agent_id} 發現資安風險`, data.security_feedback || '等待修正', data.agent_id);
         } else if (data.status === 'completed') {
           updateTaskState(data.agent_id, { status: 'completed', progress: 100, fableFeedback: data.fable_feedback, report_file: data.report_file });
           if (data.agent_id !== 'system-coordinator') { setWorkerStatus(data.agent_id, 'idle'); setAuditorStatus('idle'); }
           addTerminalLog(`[Review 通過] ✅ 總裁雙重 Review 順利通過！`, 'success');
+          clearException(`fable-${data.agent_id}`);
+          clearException(`security-${data.agent_id}`);
           if (data.step === 0 || data.step === 1) viewReport(data.agent_id, data.agent_name, data.emoji, data.report_file);
         } else if (data.status === 'finished') {
+          if (data.token_usage) renderTokenUsage(data.token_usage, data.token_budget);
           updateDispatchProgress(100, 4); // 派遣小組協同開發結案
           addTerminalLog(`[協同結束] 👑 執行總裁 (CEO) 已將成果整理呈交，等待董事長最終驗收。`, 'success');
           showToast("交付成果已呈交，請進行最終驗收！");

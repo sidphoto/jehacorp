@@ -727,7 +727,7 @@ def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=
                         "emoji": emoji,
                         "llm_source": llm_source,
                         "retry_count": retry_count,
-                        "message": f"🔒 [段落級鎖定] 協調官已為 【{agent_name}】 鎖定 complete_report.md 段落，防並寫衝突..."
+                        "message": f"⚡ [Auto Team Beta] 協調官已依序指派 【{agent_name}】 執行目前階段..."
                     })
                     time.sleep(0.8)
 

@@ -16,12 +16,41 @@ from lib.core import (
     get_user_id_from_request
 )
 
+class TokenBudgetExceeded(RuntimeError):
+    pass
+
 def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                                meeting_mode, discussion_consensus, acceptance_feedback,
-                               single_agent, collaboration_mode="subagent", custom_openai_api_key="", custom_gemini_api_key=""):
+                               single_agent, collaboration_mode="subagent", custom_openai_api_key="", custom_gemini_api_key="",
+                               token_budget=100000):
     """背景 Thread 執行完整工作流，將進度寫入 KV Job State"""
     def emit(event_data):
         append_job_event(job_id, event_data)
+
+    token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
+    def tracked_completion(client, **kwargs):
+        if token_usage["total_tokens"] >= token_budget:
+            raise TokenBudgetExceeded(f"任務已達 Token 預算上限 {token_budget:,}")
+        response = client.chat.completions.create(**kwargs)
+        usage = getattr(response, "usage", None)
+        prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+        completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+        total_tokens = int(getattr(usage, "total_tokens", prompt_tokens + completion_tokens) or 0)
+        token_usage["prompt_tokens"] += prompt_tokens
+        token_usage["completion_tokens"] += completion_tokens
+        token_usage["total_tokens"] += total_tokens
+        emit({
+            "status": "token_usage",
+            "usage": dict(token_usage),
+            "token_budget": token_budget,
+            "remaining_tokens": max(0, token_budget - token_usage["total_tokens"])
+        })
+        if token_usage["total_tokens"] > token_budget:
+            raise TokenBudgetExceeded(
+                f"任務 Token 使用量 {token_usage['total_tokens']:,} 已超過預算 {token_budget:,}，已停止後續呼叫"
+            )
+        return response
 
     try:
         user_md = get_user_md(uid)
@@ -99,7 +128,7 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
             if discussion_consensus:
                 prompt += f"\n【決策共識】：{discussion_consensus}"
             if client:
-                resp = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}], temperature=0.5)
+                resp = tracked_completion(client, model=model_name, messages=[{"role": "user", "content": prompt}], temperature=0.5)
                 brief_content = resp.choices[0].message.content
             else:
                 brief_content = f"# 📋 {idea} 專案簡報\n(Mock: 無 API 金鑰)"
@@ -153,7 +182,7 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                 else:
                     client, model_name = get_llm_client("gpt-4o-mini", user_api_keys=api_keys)
                     if client:
-                        disc_resp = client.chat.completions.create(
+                        disc_resp = tracked_completion(client,
                             model=model_name,
                             messages=[{"role": "user", "content": f"模擬兩位員工的簡短對齊會議討論（{agent_name}），繁體中文，150字以內。"}],
                             temperature=0.7
@@ -177,7 +206,7 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                     emit({"status": "thinking", "step": step_num, "total_steps": len(flow),
                           "agent_id": agent_id, "agent_name": agent_name, "emoji": emoji,
                           "llm_source": llm_source, "retry_count": retry_count,
-                          "message": f"🔒 [段落級鎖定] 協調官已為 【{agent_name}】 鎖定 complete_report.md 段落，防並寫衝突..."})
+                          "message": f"⚡ [Auto Team Beta] 協調官已依序指派 【{agent_name}】 執行目前階段..."})
                     time.sleep(0.8)
 
                 emit({"status": "thinking", "step": step_num, "total_steps": len(flow),
@@ -206,7 +235,7 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                         full_prompt += f"\n🛡️【總裁資安 Review 修正建議】：{security_feedback}\n"
                     if previous_outputs:
                         full_prompt += "\n【前步成果】：\n" + "\n".join([f"--- {k} ---\n{v}" for k, v in previous_outputs.items()])
-                    resp = client.chat.completions.create(
+                    resp = tracked_completion(client,
                         model=model_name,
                         messages=[{"role": "user", "content": full_prompt}],
                         temperature=0.7
@@ -227,10 +256,12 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                     try:
                         ac, am = get_llm_client("gpt-4o", user_api_keys=api_keys)
                         if ac:
-                            ar = ac.chat.completions.create(model=am, messages=[{"role": "system", "content": FABLE_AUDITOR_PROMPT.format(draft_content=output_content)}, {"role": "user", "content": "請進行 Code Review。"}], temperature=0.2)
+                            ar = tracked_completion(ac, model=am, messages=[{"role": "system", "content": FABLE_AUDITOR_PROMPT.format(draft_content=output_content)}, {"role": "user", "content": "請進行 Code Review。"}], temperature=0.2)
                             art = ar.choices[0].message.content
                             fable_passed = "CEO_PASS" in art
                             fable_feedback = ("✅ 總裁 Review: " if fable_passed else "❌ 總裁退回: ") + art.replace("【CEO_PASS】", "").replace("【CEO_REJECT】", "").strip()
+                    except TokenBudgetExceeded:
+                        raise
                     except Exception:
                         fable_feedback = "✅ 總裁 Review 通過 (中斷容錯)"
 
@@ -240,6 +271,8 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                           "retry_count": retry_count, "fable_feedback": fable_feedback,
                           "message": f"總裁 Review 退回重做：{fable_feedback}"})
                     retry_count += 1
+                    if retry_count > 2:
+                        raise RuntimeError(f"{agent_name} 已達最大重試次數 2 次，任務停止等待董事長介入")
                     time.sleep(0.5)
                     continue
 
@@ -260,10 +293,12 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                     try:
                         sc, sm = get_llm_client("gpt-4o", user_api_keys=api_keys)
                         if sc:
-                            sr = sc.chat.completions.create(model=sm, messages=[{"role": "system", "content": SECURITY_CHECKER_PROMPT.format(draft_content=output_content)}, {"role": "user", "content": "請進行資安審查。"}], temperature=0.1)
+                            sr = tracked_completion(sc, model=sm, messages=[{"role": "system", "content": SECURITY_CHECKER_PROMPT.format(draft_content=output_content)}, {"role": "user", "content": "請進行資安審查。"}], temperature=0.1)
                             srt = sr.choices[0].message.content
                             sec_passed = "CEO_SEC_PASS" in srt
                             security_feedback = ("✅ 總裁資安 Review: " if sec_passed else "❌ 總裁資安拒絕: ") + srt.replace("【CEO_SEC_PASS】", "").replace("【CEO_SEC_REJECT】", "").strip()
+                    except TokenBudgetExceeded:
+                        raise
                     except Exception:
                         security_feedback = "✅ 總裁資安 Review 通過 (中斷容錯)"
 
@@ -273,6 +308,8 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                           "retry_count": retry_count, "security_feedback": security_feedback,
                           "message": f"總裁資安 Review 退回：{security_feedback}"})
                     retry_count += 1
+                    if retry_count > 2:
+                        raise RuntimeError(f"{agent_name} 已達最大重試次數 2 次，任務停止等待董事長介入")
                     time.sleep(0.5)
                     continue
 
@@ -325,9 +362,11 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
                     try:
                         ec, em = get_llm_client("gpt-4o-mini", user_api_keys=api_keys)
                         if ec:
-                            er = ec.chat.completions.create(model=em, messages=[{"role": "user", "content": f"您是 JehaCrop CEO。員工「{agent_name}」完成了任務「{idea}」。請從以下名冊選 1~2 位協作者（JSON 陣列格式，直接輸出不加 ```json 標記）：\n{agents_text}"}], temperature=0.2)
+                            er = tracked_completion(ec, model=em, messages=[{"role": "user", "content": f"您是 JehaCrop CEO。員工「{agent_name}」完成了任務「{idea}」。請從以下名冊選 1~2 位協作者（JSON 陣列格式，直接輸出不加 ```json 標記）：\n{agents_text}"}], temperature=0.2)
                             js = er.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
                             collaborator_ids = json.loads(js)
+                    except TokenBudgetExceeded:
+                        raise
                     except Exception:
                         collaborator_ids = ["ad-creative-strategist"]
 
@@ -391,9 +430,19 @@ def _run_workflow_background(job_id, uid, idea, workflow_type, mock_mode,
             "all_written_files": all_file_names,
             "acceptance_report": f"{project_id}/acceptance_report.md",
             "project_id": project_id,
+            "token_usage": token_usage,
+            "token_budget": token_budget,
             "message": "專案開發流程已全數跑完！總結報告已呈交，正等待董事長進行最終驗收..."
         })
 
+    except TokenBudgetExceeded as e:
+        finish_job(job_id, {
+            "status": "budget_exceeded",
+            "error": str(e),
+            "token_usage": token_usage,
+            "token_budget": token_budget,
+            "message": "Token 預算已達上限，任務安全停止，等待董事長調整預算或縮小範圍。"
+        })
     except Exception as e:
         import traceback
         finish_job(job_id, {"status": "error", "error": str(e), "trace": traceback.format_exc()})
@@ -430,6 +479,10 @@ def handler(request):
     collaboration_mode = body.get("collaboration_mode", "subagent").strip()
     custom_openai_api_key = body.get("custom_openai_api_key", "").strip()
     custom_gemini_api_key = body.get("custom_gemini_api_key", "").strip()
+    try:
+        token_budget = max(10000, min(int(body.get("token_budget", 100000)), 2000000))
+    except (TypeError, ValueError):
+        token_budget = 100000
 
     # 生成唯一 job_id
     job_id = f"job_{re.sub(r'[^a-zA-Z0-9]', '', uid[:10])}_{str(int(time.time()))}"
@@ -440,7 +493,7 @@ def handler(request):
         target=_run_workflow_background,
         args=(job_id, uid, idea, workflow_type, mock_mode, meeting_mode,
               discussion_consensus, acceptance_feedback, single_agent, collaboration_mode,
-              custom_openai_api_key, custom_gemini_api_key),
+              custom_openai_api_key, custom_gemini_api_key, token_budget),
         daemon=True
     )
     t.start()
