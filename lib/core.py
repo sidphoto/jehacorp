@@ -17,6 +17,16 @@ except ImportError:
     OpenAI = None
 
 # ── Vercel Serverless Postgres (Neon) KV 適配封裝 ──────────────────────────────
+_LOCAL_KV = {}
+_FALLBACK_FILE = os.path.join(parent_dir, "data", "kv_fallback.json")
+try:
+    os.makedirs(os.path.dirname(_FALLBACK_FILE), exist_ok=True)
+    if os.path.exists(_FALLBACK_FILE):
+        with open(_FALLBACK_FILE, "r", encoding="utf-8") as f:
+            _LOCAL_KV = json.load(f)
+except Exception:
+    pass
+
 try:
     import psycopg2
     # Vercel Serverless Postgres 自動注入的環境變數 (優先使用 POSTGRES_URL)
@@ -25,8 +35,8 @@ try:
     def _get_pg_conn():
         if not _PG_URL:
             return None
-        # 建立 TCP 直連 Postgres
-        conn = psycopg2.connect(_PG_URL)
+        # 建立 TCP 直連 Postgres，並強制限制 3 秒超時，避免資料庫停機時 Vercel timeout 504
+        conn = psycopg2.connect(_PG_URL, connect_timeout=3)
         conn.autocommit = True
         return conn
 
@@ -47,20 +57,27 @@ try:
 
     def kv_get(key):
         if not _PG_URL:
-            return None
+            return _LOCAL_KV.get(key)
         try:
             with _get_pg_conn() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT value FROM kv_store WHERE key = %s;", (key,))
                     row = cur.fetchone()
-                    return row[0] if row else None
+                    return row[0] if row else _LOCAL_KV.get(key)
         except Exception as e:
-            print(f"[PG_GET_ERROR] key={key}, err={e}")
-            return None
+            print(f"[PG_GET_ERROR] key={key}, err={e} - 自動降級使用本地/記憶體備份")
+            return _LOCAL_KV.get(key)
 
     def kv_set(key, value, ex=None):
+        # 雙重保險：在寫入資料庫時，也同步備份至本地 memory 緩存
+        _LOCAL_KV[key] = str(value)
         if not _PG_URL:
-            return False
+            try:
+                with open(_FALLBACK_FILE, "w", encoding="utf-8") as f:
+                    json.dump(_LOCAL_KV, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+            return True
         try:
             with _get_pg_conn() as conn:
                 with conn.cursor() as cur:
@@ -72,8 +89,13 @@ try:
                     """, (key, str(value)))
                     return True
         except Exception as e:
-            print(f"[PG_SET_ERROR] key={key}, err={e}")
-            return False
+            print(f"[PG_SET_ERROR] key={key}, err={e} - 自動降級使用本地/記憶體備份")
+            try:
+                with open(_FALLBACK_FILE, "w", encoding="utf-8") as f:
+                    json.dump(_LOCAL_KV, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+            return True
 
     def kv_get_json(key):
         raw = kv_get(key)
@@ -89,18 +111,7 @@ try:
 
 except Exception as global_err:
     print(f"[PG_GLOBAL_INIT_ERROR] {global_err} - 啟用本地內置 JSON/Memory 備份模擬")
-    _LOCAL_KV = {}
     
-    # 試著載入本地 fallback.json (只在本地開發且沒有 Postgres 時起效)
-    _FALLBACK_FILE = os.path.join(parent_dir, "data", "kv_fallback.json")
-    try:
-        os.makedirs(os.path.dirname(_FALLBACK_FILE), exist_ok=True)
-        if os.path.exists(_FALLBACK_FILE):
-            with open(_FALLBACK_FILE, "r", encoding="utf-8") as f:
-                _LOCAL_KV = json.load(f)
-    except Exception:
-        pass
-
     def kv_get(key):
         return _LOCAL_KV.get(key)
 

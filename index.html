@@ -2583,21 +2583,51 @@
     });
 
     // SSO 模擬登入
-    document.getElementById('google-login-btn').addEventListener('click', async () => {
+    const googleLoginBtn = document.getElementById('google-login-btn');
+    googleLoginBtn.addEventListener('click', async () => {
       const email = document.getElementById('login-email').value.trim();
       if (!email || !email.includes('@')) {
         showToast('請先輸入正確的電子郵件格式！', true);
         return;
       }
       
-      const authData = await apiRequest('/api/auth', 'POST', { email });
-      if (authData) {
-        currentUser = authData;
+      googleLoginBtn.disabled = true;
+      googleLoginBtn.textContent = '登入進行中...';
+      
+      try {
+        const authData = await apiRequest('/api/auth', 'POST', { email });
+        if (authData) {
+          currentUser = authData;
+          localStorage.setItem('jehacrop_user', JSON.stringify(currentUser));
+          document.getElementById('auth-overlay').style.display = 'none';
+          document.getElementById('username-display').textContent = currentUser.name;
+          showToast(`歡迎回來，${currentUser.name} 總裁！`);
+          initializeAppData();
+        } else {
+          throw new Error('未獲取到登入憑證');
+        }
+      } catch (e) {
+        console.error('線上登入失敗，啟動離線 Fallback', e);
+        showToast(`線上登入失敗：${e.message}。已自動啟用本地離線/降級登入！`, true);
+        
+        // 離線自動降級登入 (SSO Disaster Recovery)
+        const username = email.split('@')[0];
+        currentUser = {
+          token: email,
+          name: username,
+          avatar: "🎓",
+          email: email
+        };
         localStorage.setItem('jehacrop_user', JSON.stringify(currentUser));
         document.getElementById('auth-overlay').style.display = 'none';
         document.getElementById('username-display').textContent = currentUser.name;
-        showToast(`歡迎回來，${currentUser.name} 總裁！`);
         initializeAppData();
+      } finally {
+        googleLoginBtn.disabled = false;
+        googleLoginBtn.innerHTML = `
+          <svg style="width:14px;height:14px;margin-right:4px;" viewBox="0 0 24 24"><path fill="currentColor" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.555 0-6.435-2.88-6.435-6.435s2.88-6.435 6.435-6.435c1.642 0 3.136.618 4.29 1.63L21.36 4.39C19.04 2.27 15.93 1 12.24 1 6.033 1 12.24s5.033 11.24 11.24 11.24c5.787 0 10.74-4.08 10.74-11.24 0-.67-.06-1.32-.172-1.955H12.24z"/></svg>
+          以 Google 帳號 SSO 登入
+        `;
       }
     });
 
