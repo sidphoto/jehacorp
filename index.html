@@ -104,6 +104,28 @@
       transition: var(--transition);
     }
 
+    /* 協作模式選擇器樣式 */
+    .collab-mode-card:hover {
+      border-color: var(--accent) !important;
+      background: rgba(130, 98, 81, 0.03);
+    }
+    .collab-mode-card.active {
+      border-color: var(--accent) !important;
+      background: #f4eee7 !important;
+      box-shadow: 0 2px 8px rgba(130, 98, 81, 0.12);
+    }
+    [data-theme="dark"] .collab-mode-card.active {
+      background: #2e2a25 !important;
+      border-color: var(--accent) !important;
+    }
+    .collab-fade-in {
+      animation: collabFadeIn 0.3s ease-in-out forwards;
+    }
+    @keyframes collabFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* SSO 登入畫面 */
     .auth-overlay {
       position: fixed;
@@ -1487,21 +1509,43 @@
         <h2 class="card-title">💡 派遣協同小組</h2>
         <textarea class="input-textarea" id="idea-input" placeholder="例如：規劃越南市場營養品合約與資安架構..."></textarea>
         
-        <div class="form-group">
+        <div class="form-group" id="workflow-select-group">
           <label class="form-label" for="workflow-select">選擇執行的虛擬團隊 (工作流)</label>
           <select class="form-select" id="workflow-select">
             <!-- 動態載入 -->
           </select>
         </div>
 
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" style="font-weight:bold;margin-bottom:0.4rem;display:block;">選擇 AI 協作模式</label>
+          <div class="collab-mode-container" style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+            <div class="collab-mode-card active" data-mode="subagent" style="flex:1;padding:0.75rem 0.5rem;border:1px solid var(--card-border);border-radius:2px;cursor:pointer;text-align:center;transition:var(--transition);">
+              <div style="font-size:1.3rem;margin-bottom:0.25rem;">👥</div>
+              <div style="font-size:0.78rem;font-weight:bold;">Subagent</div>
+              <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.1rem;">分身模式</div>
+            </div>
+            <div class="collab-mode-card" data-mode="teams" style="flex:1;padding:0.75rem 0.5rem;border:1px solid var(--card-border);border-radius:2px;cursor:pointer;text-align:center;transition:var(--transition);">
+              <div style="font-size:1.3rem;margin-bottom:0.25rem;">🤝</div>
+              <div style="font-size:0.78rem;font-weight:bold;">Agent Teams</div>
+              <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.1rem;">代理人團隊</div>
+            </div>
+            <div class="collab-mode-card" data-mode="dynamic" style="flex:1;padding:0.75rem 0.5rem;border:1px solid var(--card-border);border-radius:2px;cursor:pointer;text-align:center;transition:var(--transition);">
+              <div style="font-size:1.3rem;margin-bottom:0.25rem;">⚡</div>
+              <div style="font-size:0.78rem;font-weight:bold;">Dynamic</div>
+              <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.1rem;">動態工作流</div>
+            </div>
+          </div>
+          
+          <!-- 💡 模式詳細解說面板 (Wabi-Sabi 侘寂風卡片) -->
+          <div id="collab-explain-panel" class="collab-fade-in" style="background:var(--bg-color);border:1px solid var(--card-border);padding:0.85rem;border-radius:2px;font-size:0.78rem;line-height:1.6;color:var(--text-main);margin-bottom:1rem;min-height:140px;">
+            <!-- 動態填充 -->
+          </div>
+        </div>
+
         <div class="desk-options" style="margin-bottom:1rem;display:flex;flex-direction:column;gap:0.4rem;">
           <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);font-weight:600;cursor:pointer;">
             <input type="checkbox" id="mock-toggle" style="width:14px;height:14px;accent-color:var(--primary)" checked>
             啟用模擬測試模式 (免 API 金鑰)
-          </label>
-          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted);font-weight:600;cursor:pointer;">
-            <input type="checkbox" id="meeting-toggle" style="width:14px;height:14px;accent-color:var(--primary)">
-            💬 啟用小組會議對齊討論模式 (對齊成員進度)
           </label>
         </div>
 
@@ -2043,6 +2087,35 @@
     let clusterWorkers = [];
     let tickTimer = null;
 
+    // AI 協作模式全域狀態與說明資料
+    let currentCollabMode = 'subagent';
+    const COLLAB_MODES = {
+      subagent: {
+        title: "👥 Subagent (子代理 / 分身模式)",
+        logic: "由主控 AI 將一項大工作切細，指派給數個分身去跑，分身完成後將結果回傳給主控 AI。最關鍵的是，分身彼此之間完全不進行溝通。",
+        analogy: "就像主管用 Email 交代三位部屬各自去調查不同的事情，大家查完後各自回信給主管，彼此不需知道對方在做什麼，也不需要進行任何交流。",
+        scene: "任務定義非常明確、且可以完全平行獨立執行的工作。例如：一次幫一堆檔案撰寫測試代碼、同時爬取多個不同的網站，或是一次處理 100 份履歷的初步篩選。",
+        notScene: "Agent 之間存在相依性（Dependency），例如 Agent A 的產出必須作為 Agent B 的輸入，或是需要互相協調才能前進的任務。",
+        feature: "在處理各自獨立的任務時，這是最省事、最快且成本最低的選擇。"
+      },
+      teams: {
+        title: "🤝 Agent Teams (代理人團隊模式)",
+        logic: "在此模式下，AI 之間擁有一個內建的群組聊天室。他們各自負責不同的工作，但可以互相傳送訊息、共用一張待辦清單，並主動在聊天室裡認領任務。",
+        analogy: "就像三位同事一起進到會議室，大家邊做事、邊動態更新白板。其中一個人有了新發現，其他人能立刻得知，並隨之調整自己的下一步工作。",
+        scene: "任務彼此有交集、一個 AI 的執行方向會直接影響下一個 AI 的工作，或是需要不同角色互相對齊、邊做邊改的複雜任務。例如：在產品開發流程中，設計 Agent 和工程 Agent 必須反覆討論規格、對齊後再進行交付。",
+        notScene: "彼此任務完全獨立、不需要溝通的場景（在這種情況下直接用 Subagent 會更有效率且便宜）。",
+        feature: "適合處理高度協作與動態對齊的任務，但因為包含群組內反覆討論、重複載入工具與提示詞設定，API 費用會大幅暴增，三個 Agent 一起跑的花費可能是一個 Agent 的好幾倍。"
+      },
+      dynamic: {
+        title: "⚡ Dynamic Workflows (動態工作流模式)",
+        logic: "這是最新、最先進的等級，您甚至不需要手動為 AI 組建團隊。您只需要管好最終目標，主控 AI 就會自動規劃一份分工計劃，並在後台一口氣召喚數十、甚至上千個分身平行運作，完成後自己進行驗收，最後才將成果交付給您。",
+        analogy: "主管只交代「一週內上線新產品」，下屬自動分工成 10 個小組，各小組又自動衍生 100 個助理，互相鎖定章節開發，最後自己整合出完美產品回報主管。",
+        scene: "超大規模、能完全拆開來做的任務。最典型的例子是深度研究報告生成。例如 AI 在查到一半時發現新方向，可以自動擴充並決定要查詢哪些子主題，彈性極高。",
+        notScene: "流程非常固定、變動很明確、不需靈活調整的自動化任務（此時直接用一般的自動化流程如 N8N 反而更快、更有效率）。",
+        feature: "之所以能開這麼多 Agent 卻不卡頓，是因為那份分工計劃是存在程式的變數中，不會持續佔用模型的上下文容量（腦容量）。"
+      }
+    };
+
     // 深淺色彩切換
     const themeBtn = document.getElementById('theme-toggle-btn');
     themeBtn.addEventListener('click', () => {
@@ -2176,9 +2249,55 @@
           setTimeout(() => {
             syncWithGDrive();
           }, 1000);
-        }
+        // 初始化 AI 協作模式面板與事件綁定
+        updateCollabExplainPanel('subagent');
+        document.querySelectorAll('.collab-mode-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const mode = card.getAttribute('data-mode');
+            document.querySelectorAll('.collab-mode-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            updateCollabExplainPanel(mode);
+          });
+        });
+
       } catch (e) {
         console.error("載入初始化資料失敗", e);
+      }
+    }
+
+    // 更新協作模式詳細解說面板內容，並控制工作流下拉選單的顯示與隱藏
+    function updateCollabExplainPanel(mode) {
+      currentCollabMode = mode;
+      const panel = document.getElementById('collab-explain-panel');
+      const wfGroup = document.getElementById('workflow-select-group');
+      const info = COLLAB_MODES[mode];
+      
+      if (!panel || !info) return;
+      
+      // 動態更新面板 HTML 內容
+      panel.innerHTML = `
+        <div style="font-weight:bold;font-size:0.82rem;color:var(--accent);margin-bottom:0.4rem;">${info.title}</div>
+        <div style="margin-bottom:0.4rem;"><strong>運作邏輯：</strong>${info.logic}</div>
+        <div style="margin-bottom:0.4rem;background:rgba(130,98,81,0.04);padding:0.4rem;border-left:2px solid var(--accent);font-style:italic;">
+          <strong>白話比喻：</strong>${info.analogy}
+        </div>
+        <div style="margin-bottom:0.25rem;"><strong>👉 適用場景：</strong>${info.scene}</div>
+        <div style="margin-bottom:0.25rem;"><strong>❌ 不適用場景：</strong>${info.notScene}</div>
+        <div style="margin-top:0.4rem;font-weight:bold;color:var(--primary);">💡 模式特點：${info.feature}</div>
+      `;
+      
+      // 重置並觸發淡入動畫
+      panel.classList.remove('collab-fade-in');
+      void panel.offsetWidth; // 觸發 reflow
+      panel.classList.add('collab-fade-in');
+      
+      // 控制工作流選擇器的顯示與隱藏 (如果是動態模式則隱藏)
+      if (wfGroup) {
+        if (mode === 'dynamic') {
+          wfGroup.style.display = 'none';
+        } else {
+          wfGroup.style.display = 'block';
+        }
       }
     }
 
@@ -2794,7 +2913,7 @@
         wfId = activeDetailAgentId;
       } else {
         idea = ideaInput.value.trim();
-        wfId = document.getElementById('workflow-select').value;
+        wfId = (currentCollabMode === 'dynamic') ? 'dynamic' : document.getElementById('workflow-select').value;
       }
       
       const mock = document.getElementById('mock-toggle').checked ? 'true' : 'false';
@@ -2905,11 +3024,15 @@
         if (stateChanged) renderCluster();
       }, 1000);
 
-      // ── Polling 機制（相容 Vercel Serverless，取代 SSE 長連線）────────────────
-      const meetingMode = document.getElementById('meeting-toggle').checked;
-      
       // 1. POST /api/run 啟動任務，取得 job_id
-      let pollingPayload = { idea, mock: mock === 'true', workflow: wfId, meeting: meetingMode };
+      const meetingMode = (currentCollabMode === 'teams');
+      let pollingPayload = { 
+        idea, 
+        mock: mock === 'true', 
+        workflow: wfId, 
+        meeting: meetingMode,
+        collaboration_mode: currentCollabMode 
+      };
       if (consensus) pollingPayload.discussion = consensus;
       if (feedback) pollingPayload.feedback = feedback;
       if (singleAgent) pollingPayload.single_agent = true;

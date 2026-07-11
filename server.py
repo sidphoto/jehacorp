@@ -475,7 +475,7 @@ def get_user_id_from_headers(headers):
     return None
 
 # 核心派遣引擎：整合 SSE 流水線、背景定時派工、決策共識與董事長驗收退回修正機制、單兵指派與總裁動態協同
-def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=None, meeting_mode=False, discussion_consensus="", acceptance_feedback="", single_agent=False):
+def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=None, meeting_mode=False, discussion_consensus="", acceptance_feedback="", single_agent=False, collaboration_mode="subagent"):
     def log(event_data):
         if sse_emitter:
             sse_emitter(event_data)
@@ -489,7 +489,24 @@ def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=
         target_workflow = None
         flow = []
         
-        if single_agent:
+        if collaboration_mode == "dynamic" or workflow_type == "dynamic":
+            # 動態規劃模式：自動由 CEO 分析並拆分出合適的工作流
+            flow = ["rapid-prototyper", "frontend-developer", "backend-architect", "growth-hacker", "reality-checker"]
+            col_details = []
+            for cid in flow:
+                for ag in BUILTIN_AGENTS + load_user_agents(user_id):
+                    if ag["id"] == cid:
+                        col_details.append({
+                            "id": ag["id"],
+                            "name": ag["name"],
+                            "emoji": ag.get("emoji", "👤"),
+                            "description": ag.get("description", "")
+                        })
+                        break
+            # 發送動態成員廣播，讓前端動態延伸渲染 Pipeline
+            log({"status": "workflow_extended", "collaborators": col_details})
+            time.sleep(0.5)
+        elif single_agent:
             # 單兵指派模式：初始 Flow 僅包含單個員工
             flow = [workflow_type]
         else:
@@ -694,6 +711,20 @@ def execute_workflow(user_id, idea, workflow_type, mock_mode=False, sse_emitter=
                 time.sleep(1.0)
 
             while not passed:
+                if collaboration_mode == "dynamic":
+                    log({
+                        "status": "thinking",
+                        "step": step_num,
+                        "total_steps": len(flow),
+                        "agent_id": agent_id,
+                        "agent_name": agent_name,
+                        "emoji": emoji,
+                        "llm_source": llm_source,
+                        "retry_count": retry_count,
+                        "message": f"🔒 [段落級鎖定] 協調官已為 【{agent_name}】 鎖定 complete_report.md 段落，防並寫衝突..."
+                    })
+                    time.sleep(0.8)
+
                 log({
                     "status": "thinking",
                     "step": step_num,
@@ -1200,6 +1231,7 @@ class AgencyHandler(SimpleHTTPRequestHandler):
             discussion_consensus = query_params.get("discussion", [""])[0].strip()
             acceptance_feedback = query_params.get("feedback", [""])[0].strip()
             single_agent = query_params.get("single_agent", ["false"])[0].lower() == "true"
+            collaboration_mode = query_params.get("collaboration_mode", ["subagent"])[0].strip()
             
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -1216,7 +1248,8 @@ class AgencyHandler(SimpleHTTPRequestHandler):
                 meeting_mode=meeting_mode,
                 discussion_consensus=discussion_consensus,
                 acceptance_feedback=acceptance_feedback,
-                single_agent=single_agent
+                single_agent=single_agent,
+                collaboration_mode=collaboration_mode
             )
             return
 
@@ -1380,6 +1413,7 @@ class AgencyHandler(SimpleHTTPRequestHandler):
             discussion_consensus = body.get("discussion", "").strip()
             acceptance_feedback = body.get("feedback", "").strip()
             single_agent = body.get("single_agent", False)
+            collaboration_mode = body.get("collaboration_mode", "subagent").strip()
 
             # 生成唯一 job_id 并初始化 state
             from lib.core import save_job_state
@@ -1408,7 +1442,8 @@ class AgencyHandler(SimpleHTTPRequestHandler):
                     "meeting_mode": meeting_mode,
                     "discussion_consensus": discussion_consensus,
                     "acceptance_feedback": acceptance_feedback,
-                    "single_agent": single_agent
+                    "single_agent": single_agent,
+                    "collaboration_mode": collaboration_mode
                 },
                 daemon=True
             )
